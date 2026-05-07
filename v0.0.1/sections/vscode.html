@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Kiwi Firmware | Embedded firmware documentation for the Kiwi (RP2350B).</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Kiwi Firmware" />
+<meta name="author" content="Chickadee" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:site_name" content="Kiwi Firmware" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Kiwi Firmware" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","author":{"@type":"Person","name":"Chickadee"},"description":"Embedded firmware documentation for the Kiwi (RP2350B).","headline":"Kiwi Firmware","url":"/kiwi-firmware/v0.0.1/sections/vscode.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap" as="style" type="text/css" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#157878">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="/kiwi-firmware/v0.0.1/assets/css/style.css">
+    <link rel="icon" href="/kiwi-firmware/v0.0.1/favicon.ico" type="image/x-icon">
+<script>try{var _kct=localStorage.getItem('kiwi-color-theme');if(_kct&&_kct!=='default')document.documentElement.dataset.theme=_kct;}catch(e){}</script>
+<script>MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},options:{skipHtmlTags:['script','noscript','style','textarea','pre']}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<script>window.SITE_BASEURL = "/kiwi-firmware/v0.0.1";</script>
+<script src="/kiwi-firmware/v0.0.1/assets/js/manual.js" defer></script>
+
+  </head>
+  <body>
+    <a id="skip-to-content" href="#content">Skip to the content.</a>
+
+    <header class="page-header" role="banner">
+      <h1 class="project-name">Kiwi Firmware</h1>
+      <h2 class="project-tagline">Embedded firmware documentation for the Kiwi (RP2350B).</h2>
+      
+        <a href="https://github.com/chickadee-smallsat/kiwi-firmware" class="btn">View on GitHub</a>
+      
+      
+    </header>
+
+    <main id="content" class="main-content" role="main">
+      <section class="manual-sheet" id="vscode">
+
+  <h1 id="visual-studio-code">Visual Studio Code</h1>
+
+  <p><a href="https://code.visualstudio.com/">Visual Studio Code</a> (VS Code) is a free, open-source editor with first-class support for Rust and embedded development. While any editor works, VS Code is recommended for this project.</p>
+
+  <h2 id="installing-vs-code">Installing VS Code</h2>
+
+  <p>Download and install VS Code for your platform from <a href="https://code.visualstudio.com/download">code.visualstudio.com</a>.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>Installation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Linux</strong></td>
+        <td>Download the <code class="language-plaintext highlighter-rouge">.deb</code> / <code class="language-plaintext highlighter-rouge">.rpm</code> package, or install via your package manager (<code class="language-plaintext highlighter-rouge">sudo apt install code</code>, <code class="language-plaintext highlighter-rouge">sudo dnf install code</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>macOS</strong></td>
+        <td>Download the <code class="language-plaintext highlighter-rouge">.zip</code>, extract it, and drag <strong>Visual Studio Code</strong> to your <strong>Applications</strong> folder</td>
+      </tr>
+      <tr>
+        <td><strong>Windows</strong></td>
+        <td>Run the <code class="language-plaintext highlighter-rouge">.exe</code> installer</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="opening-the-repository">Opening the Repository</h2>
+
+  <p>Open the extracted repository folder in VS Code using any of the following methods:</p>
+
+  <p><strong>File menu:</strong> <ui-tab>File</ui-tab> → <ui-menu>Open Folder…</ui-menu>, then navigate to the repository root.</p>
+
+  <p><strong>File Explorer / Finder (macOS):</strong> Drag the repository folder onto the VS Code icon in the Dock or taskbar.</p>
+
+  <p><strong>Terminal:</strong></p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">code kiwi-firmware-*/
+</span></code></pre></div>  </div>
+
+  <p>VS Code will prompt you to install the recommended extensions — click <ui-btn>Install</ui-btn> to accept.</p>
+
+  <h2 id="initializing-git-tracking">Initializing Git Tracking</h2>
+
+  <p>Because the source code is downloaded as an archive rather than cloned from a repository, it does not come with Git history. Initializing Git tracking locally lets you record your own changes, experiment safely on branches, and revert to a known-good state at any time.</p>
+
+  <p>From the repository root, run:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">git init
+git add .
+git commit -m "Initial commit"
+</span></code></pre></div>  </div>
+
+  <p>VS Code’s built-in <strong>Source Control</strong> view (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> / <kbd>⌃⇧G</kbd>) will then show modified files, diffs, and let you stage and commit changes without leaving the editor.</p>
+
+  <blockquote>
+    <p><strong>Tip:</strong> If you want to push your changes to your own remote (e.g. a private GitHub repository), create the remote first and then add it:</p>
+
+    <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git push -u origin main
+</span></code></pre></div>    </div>
+  </blockquote>
+
+  <h2 id="recommended-extensions">Recommended Extensions</h2>
+
+  <p>Install the following extensions from the <a href="https://code.visualstudio.com/docs/editor/extension-marketplace">Extensions view</a> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> / <kbd>⇧⌘X</kbd>):</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Extension</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer">rust-analyzer</a></td>
+        <td>Full Rust language support: autocomplete, inline diagnostics, go-to-definition, and refactoring</td>
+      </tr>
+      <tr>
+        <td><a href="https://marketplace.visualstudio.com/items?itemName=probe-rs.probe-rs-debugger">probe-rs-debugger</a></td>
+        <td>On-chip debugging, breakpoints, and live variable inspection over the debug probe</td>
+      </tr>
+      <tr>
+        <td><a href="https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml">Even Better TOML</a></td>
+        <td>Syntax highlighting and validation for <code class="language-plaintext highlighter-rouge">Cargo.toml</code> files</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="why-vs-code">Why VS Code?</h2>
+
+  <ul>
+    <li><strong>Inline errors and warnings</strong> — <code class="language-plaintext highlighter-rouge">rust-analyzer</code> shows compiler diagnostics directly in the editor as you type, without needing to run <code class="language-plaintext highlighter-rouge">cargo build</code> manually.</li>
+    <li><strong>Autocomplete and documentation</strong> — hover over any symbol to see its type signature and documentation, and get context-aware completions.</li>
+    <li><strong>On-chip debugging</strong> — the <code class="language-plaintext highlighter-rouge">probe-rs-debugger</code> extension lets you set breakpoints, step through firmware, and inspect variables on the live target via the debug probe, all without leaving the editor.</li>
+    <li><strong>Integrated terminal</strong> — run <code class="language-plaintext highlighter-rouge">cargo run</code>, flash firmware, and stream RTT logs from a terminal panel inside the editor.</li>
+    <li><strong>Git integration</strong> — stage, commit, and diff changes without switching windows.</li>
+  </ul>
+
+</section>
+
+
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <span class="site-footer-owner">
+            <a href="https://github.com/chickadee/kiwi-firmware-template">kiwi-firmware</a>
+            
+            is maintained by
+            <a href="mailto:sunipkmukherjee@gmail.com">Chickadee</a>.
+            
+          </span>
+          
+          <span class="site-footer-contact">
+            Contact us: <a href="mailto:sunipkmukherjee@gmail.com">sunipkmukherjee@gmail.com</a>
+          </span>
+          
+          <div class="version-selector" aria-label="Documentation version selector">
+  <label class="version-selector__label" for="version-select">Version</label>
+  <select id="version-select" class="version-selector__select">
+    <option value="" disabled selected>Loading versions...</option>
+  </select>
+</div>
+
+<script>
+(function () {
+  var baseurl = '/kiwi-firmware/v0.0.1';
+  var parts = baseurl.split('/').filter(Boolean);
+  var current = parts.length ? parts[parts.length - 1] : 'latest';
+  var docsRoot = parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : (parts.length === 1 ? '/' + parts[0] : '');
+  var versionsUrl = (docsRoot || '') + '/versions.json';
+
+  function targetUrl(version) {
+    var root = docsRoot || '';
+    return root + '/' + version + '/';
+  }
+
+  fetch(versionsUrl)
+    .then(function (res) {
+      return res.ok ? res.json() : [];
+    })
+    .catch(function () {
+      return [];
+    })
+    .then(function (versions) {
+      var select = document.getElementById('version-select');
+      if (!select || !Array.isArray(versions) || !versions.length) {
+        return;
+      }
+
+      select.innerHTML = '';
+      versions.forEach(function (v, i) {
+        var option = document.createElement('option');
+        option.value = v;
+        option.textContent = i === 0 ? v + ' (latest)' : v;
+        option.selected = (v === current);
+        select.appendChild(option);
+      });
+
+      if (!versions.includes(current)) {
+        select.selectedIndex = 0;
+      }
+
+      select.addEventListener('change', function () {
+        window.location.href = targetUrl(select.value) + window.location.hash;
+      });
+    });
+})();
+</script>
+
+          <span class="site-footer-credits">Generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+        </div>
+      </footer>
+    </main>
+    <aside class="theme-switcher" id="theme-switcher">
+  <button class="theme-switcher__toggle" id="theme-toggle"
+          aria-haspopup="true" aria-expanded="false" aria-controls="theme-panel"
+          aria-label="Color theme">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5
+               0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16
+               c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5
+               S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5
+               S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5
+               S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5
+               S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </svg>
+  </button>
+
+  <div class="theme-switcher__panel" id="theme-panel" hidden role="group" aria-label="Select color theme">
+    <p class="theme-switcher__heading">Color theme</p>
+
+    <button class="theme-opt" data-theme="default" aria-pressed="true">
+      <span class="theme-opt__dot" style="background:#0e3247;box-shadow:0 0 0 2px #7fd4f0"></span>
+      Default
+    </button>
+    <button class="theme-opt" data-theme="deuteranopia" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#0d2c52;box-shadow:0 0 0 2px #f5a428"></span>
+      Deuteranopia-friendly
+    </button>
+    <button class="theme-opt" data-theme="high-contrast" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#000;box-shadow:0 0 0 2px #ffff00"></span>
+      High Contrast
+    </button>
+    <button class="theme-opt" data-theme="monochrome" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#1e1e1e;box-shadow:0 0 0 2px #d0d0d0"></span>
+      Monochrome
+    </button>
+  </div>
+
+  <div aria-live="polite" aria-atomic="true" class="theme-switcher__announce" id="theme-announce"></div>
+</aside>
+
+<script>
+(function () {
+  var PREF_KEY = 'kiwi-color-theme';
+  var labels = {
+    'default': 'Default',
+    'deuteranopia': 'Deuteranopia-friendly',
+    'high-contrast': 'High Contrast',
+    'monochrome': 'Monochrome'
+  };
+
+  var root    = document.documentElement;
+  var toggle  = document.getElementById('theme-toggle');
+  var panel   = document.getElementById('theme-panel');
+  var opts    = document.querySelectorAll('.theme-opt');
+  var announce = document.getElementById('theme-announce');
+
+  function applyTheme(theme, shouldAnnounce) {
+    if (theme && theme !== 'default') {
+      root.dataset.theme = theme;
+    } else {
+      delete root.dataset.theme;
+      theme = 'default';
+    }
+    opts.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.theme === theme));
+    });
+    if (shouldAnnounce && announce) {
+      announce.textContent = '';
+      // Force re-announcement with a slight delay
+      setTimeout(function () {
+        announce.textContent = 'Color theme changed to ' + (labels[theme] || theme);
+      }, 50);
+    }
+    try { localStorage.setItem(PREF_KEY, theme); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('kiwi-theme', { detail: theme }));
+  }
+
+  // Sync button states with whatever theme was applied by the anti-FOUC script
+  var saved;
+  try { saved = localStorage.getItem(PREF_KEY) || 'default'; } catch (e) { saved = 'default'; }
+  applyTheme(saved, false);
+
+  // Toggle panel open/close
+  toggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var opening = panel.hidden;
+    panel.hidden = !opening;
+    toggle.setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      // Focus first option when opening
+      var first = panel.querySelector('.theme-opt');
+      if (first) first.focus();
+    }
+  });
+
+  // Option selection
+  opts.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyTheme(btn.dataset.theme, true);
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    });
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function (e) {
+    var sw = document.getElementById('theme-switcher');
+    if (sw && !sw.contains(e.target)) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !panel.hidden) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    }
+  });
+})();
+</script>
+
+  </body>
+</html>

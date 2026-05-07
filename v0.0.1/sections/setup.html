@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Kiwi Firmware | Embedded firmware documentation for the Kiwi (RP2350B).</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Kiwi Firmware" />
+<meta name="author" content="Chickadee" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:site_name" content="Kiwi Firmware" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Kiwi Firmware" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","author":{"@type":"Person","name":"Chickadee"},"description":"Embedded firmware documentation for the Kiwi (RP2350B).","headline":"Kiwi Firmware","url":"/kiwi-firmware/v0.0.1/sections/setup.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap" as="style" type="text/css" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#157878">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="/kiwi-firmware/v0.0.1/assets/css/style.css">
+    <link rel="icon" href="/kiwi-firmware/v0.0.1/favicon.ico" type="image/x-icon">
+<script>try{var _kct=localStorage.getItem('kiwi-color-theme');if(_kct&&_kct!=='default')document.documentElement.dataset.theme=_kct;}catch(e){}</script>
+<script>MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},options:{skipHtmlTags:['script','noscript','style','textarea','pre']}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<script>window.SITE_BASEURL = "/kiwi-firmware/v0.0.1";</script>
+<script src="/kiwi-firmware/v0.0.1/assets/js/manual.js" defer></script>
+
+  </head>
+  <body>
+    <a id="skip-to-content" href="#content">Skip to the content.</a>
+
+    <header class="page-header" role="banner">
+      <h1 class="project-name">Kiwi Firmware</h1>
+      <h2 class="project-tagline">Embedded firmware documentation for the Kiwi (RP2350B).</h2>
+      
+        <a href="https://github.com/chickadee-smallsat/kiwi-firmware" class="btn">View on GitHub</a>
+      
+      
+    </header>
+
+    <main id="content" class="main-content" role="main">
+      <section class="manual-sheet" id="setup">
+
+  <h1 id="setup">Setup</h1>
+
+  <h2 id="linux-and-macos">Linux and macOS</h2>
+
+  <p>Run the setup script from the repository root. It will install <code class="language-plaintext highlighter-rouge">rustup</code>, the Rust stable toolchain, the RP2350 cross-compilation target, and <code class="language-plaintext highlighter-rouge">probe-rs</code>. On Linux it also installs udev rules (requires <code class="language-plaintext highlighter-rouge">sudo</code>).</p>
+
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./setup.sh
+</code></pre></div>  </div>
+
+  <p>After the script completes, start a new shell session (or source the Cargo environment) to make the new tools available on <code class="language-plaintext highlighter-rouge">PATH</code>:</p>
+
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> ~/.cargo/env
+</code></pre></div>  </div>
+
+  <p><strong>Linux only — udev rules:</strong><br />
+The script installs udev rules automatically. If you need to do this manually:</p>
+
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo install</span> <span class="nt">-m</span> 644 rules/<span class="k">*</span>.rules /etc/udev/rules.d/
+<span class="nb">sudo </span>udevadm control <span class="nt">--reload-rules</span> <span class="o">&amp;&amp;</span> <span class="nb">sudo </span>udevadm trigger
+</code></pre></div>  </div>
+
+  <h2 id="windows">Windows</h2>
+
+  <p>Open <strong>PowerShell as Administrator</strong> and run the setup script from the repository root:</p>
+
+  <div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\setup.ps1</span><span class="w">
+</span></code></pre></div>  </div>
+
+  <p>The script will:</p>
+
+  <ol>
+    <li>Install (or update) the <strong>MSVC C++ Build Tools</strong> with the <em>Desktop development with C++</em> workload</li>
+    <li>Install <code class="language-plaintext highlighter-rouge">rustup</code> and the Rust stable toolchain</li>
+    <li>Add the <code class="language-plaintext highlighter-rouge">thumbv8m.main-none-eabihf</code> cross-compilation target</li>
+    <li>Install <code class="language-plaintext highlighter-rouge">probe-rs</code></li>
+  </ol>
+
+  <p>Close the PowerShell window and open a new one before building, so that all updated <code class="language-plaintext highlighter-rouge">PATH</code> entries take effect.</p>
+
+  <h2 id="verifying-the-installation">Verifying the Installation</h2>
+
+  <p>After setup, confirm the key tools are available:</p>
+
+  <p>Linux / macOS:</p>
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">rustc --version          #</span><span class="w"> </span>e.g. rustc 1.87.0 <span class="o">(</span>...<span class="o">)</span>
+<span class="gp">cargo --version          #</span><span class="w"> </span>e.g. cargo 1.87.0 <span class="o">(</span>...<span class="o">)</span>
+<span class="gp">probe-rs --version       #</span><span class="w"> </span>e.g. probe-rs 0.27.0
+<span class="go">rustup target list --installed | grep thumbv8m
+</span></code></pre></div>  </div>
+
+  <p>Windows:</p>
+  <div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">rustc</span><span class="w"> </span><span class="nt">--version</span><span class="w">          </span><span class="c"># e.g. rustc 1.87.0 (...)</span><span class="w">
+</span><span class="n">cargo</span><span class="w"> </span><span class="nt">--version</span><span class="w">          </span><span class="c"># e.g. cargo 1.87.0 (...)</span><span class="w">
+</span><span class="n">probe-rs</span><span class="w"> </span><span class="nt">--version</span><span class="w">       </span><span class="c"># e.g. probe-rs 0.27.0</span><span class="w">
+</span><span class="n">rustup</span><span class="w"> </span><span class="nx">target</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="nt">--installed</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">Select-String</span><span class="w"> </span><span class="nx">thumbv8m</span><span class="w">
+</span></code></pre></div>  </div>
+
+  <h2 id="building-and-flashing">Building and Flashing</h2>
+
+  <p>Connect your debug probe to the Kiwi, then run:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release
+</span></code></pre></div>  </div>
+
+  <p>This builds the firmware in release mode and flashes it via <code class="language-plaintext highlighter-rouge">probe-rs</code>. RTT/defmt log output is streamed to the terminal automatically.</p>
+
+  <p>To enable specific sensor subsystems, pass the relevant feature flags:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release --features sensors-all
+</span></code></pre></div>  </div>
+
+  <p>See the <a href="https://github.com/chickadee-smallsat/kiwi-firmware/blob/master/firmware/Cargo.toml">firmware Cargo.toml</a> for the full list of available features.</p>
+
+  <h2 id="attaching-to-a-running-target">Attaching to a Running Target</h2>
+
+  <p>To attach <code class="language-plaintext highlighter-rouge">probe-rs</code> to already-running firmware without reflashing:</p>
+
+  <p>Linux / macOS:</p>
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>probe-rs attach target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
+</code></pre></div>  </div>
+
+  <p>Windows:</p>
+  <div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">probe-rs</span><span class="w"> </span><span class="nx">attach</span><span class="w"> </span><span class="nx">target\thumbv8m.main-none-eabihf\release\kiwi-firmware-base</span><span class="w">
+</span></code></pre></div>  </div>
+
+  <h2 id="panic-wifi-firmware-verification-failed">Panic: WiFi firmware verification failed</h2>
+
+  <p>At startup, the firmware reads the CYW43439 Wi-Fi firmware blob and control logic and management blob from dedicated regions of the Kiwi’s on-board memory and verifies each with a CRC-16 checksum.
+This panic means the data at those addresses did not match the checksum baked in at compile time.</p>
+
+  <h4 id="possible-causes">Possible causes</h4>
+
+  <ul>
+    <li>The Wi-Fi firmware and CLM blobs have never been flashed to the device.</li>
+    <li>The main firmware was rebuilt (changing the flash layout) without re-flashing the WiFi blobs.</li>
+    <li>The blobs were flashed to the wrong addresses.</li>
+  </ul>
+
+  <h4 id="fix">Fix</h4>
+
+  <p>Build the project once so the helper flash script is generated, then run it <strong>before</strong> flashing the main firmware:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">#</span><span class="w"> </span>Build <span class="o">(</span>generates the script<span class="o">)</span>
+<span class="go">cargo build --release
+</span></code></pre></div>  </div>
+
+  <p>On Linux / macOS — flash WiFi FW, CLM, and credentials</p>
+
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./firmware/flash-wifi-fw.sh
+</code></pre></div>  </div>
+
+  <p>On Windows:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">.\firmware\flash-wifi-fw.bat
+</span></code></pre></div>  </div>
+
+  <p>The script calls <code class="language-plaintext highlighter-rouge">probe-rs download</code> three times, writing the WiFi firmware, CLM blob, and device-credentials page to the addresses computed by <code class="language-plaintext highlighter-rouge">build.rs</code>. After the script completes, flash the main firmware as usual:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release
+</span></code></pre></div>  </div>
+
+</section>
+
+
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <span class="site-footer-owner">
+            <a href="https://github.com/chickadee/kiwi-firmware-template">kiwi-firmware</a>
+            
+            is maintained by
+            <a href="mailto:sunipkmukherjee@gmail.com">Chickadee</a>.
+            
+          </span>
+          
+          <span class="site-footer-contact">
+            Contact us: <a href="mailto:sunipkmukherjee@gmail.com">sunipkmukherjee@gmail.com</a>
+          </span>
+          
+          <div class="version-selector" aria-label="Documentation version selector">
+  <label class="version-selector__label" for="version-select">Version</label>
+  <select id="version-select" class="version-selector__select">
+    <option value="" disabled selected>Loading versions...</option>
+  </select>
+</div>
+
+<script>
+(function () {
+  var baseurl = '/kiwi-firmware/v0.0.1';
+  var parts = baseurl.split('/').filter(Boolean);
+  var current = parts.length ? parts[parts.length - 1] : 'latest';
+  var docsRoot = parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : (parts.length === 1 ? '/' + parts[0] : '');
+  var versionsUrl = (docsRoot || '') + '/versions.json';
+
+  function targetUrl(version) {
+    var root = docsRoot || '';
+    return root + '/' + version + '/';
+  }
+
+  fetch(versionsUrl)
+    .then(function (res) {
+      return res.ok ? res.json() : [];
+    })
+    .catch(function () {
+      return [];
+    })
+    .then(function (versions) {
+      var select = document.getElementById('version-select');
+      if (!select || !Array.isArray(versions) || !versions.length) {
+        return;
+      }
+
+      select.innerHTML = '';
+      versions.forEach(function (v, i) {
+        var option = document.createElement('option');
+        option.value = v;
+        option.textContent = i === 0 ? v + ' (latest)' : v;
+        option.selected = (v === current);
+        select.appendChild(option);
+      });
+
+      if (!versions.includes(current)) {
+        select.selectedIndex = 0;
+      }
+
+      select.addEventListener('change', function () {
+        window.location.href = targetUrl(select.value) + window.location.hash;
+      });
+    });
+})();
+</script>
+
+          <span class="site-footer-credits">Generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+        </div>
+      </footer>
+    </main>
+    <aside class="theme-switcher" id="theme-switcher">
+  <button class="theme-switcher__toggle" id="theme-toggle"
+          aria-haspopup="true" aria-expanded="false" aria-controls="theme-panel"
+          aria-label="Color theme">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5
+               0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16
+               c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5
+               S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5
+               S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5
+               S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5
+               S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </svg>
+  </button>
+
+  <div class="theme-switcher__panel" id="theme-panel" hidden role="group" aria-label="Select color theme">
+    <p class="theme-switcher__heading">Color theme</p>
+
+    <button class="theme-opt" data-theme="default" aria-pressed="true">
+      <span class="theme-opt__dot" style="background:#0e3247;box-shadow:0 0 0 2px #7fd4f0"></span>
+      Default
+    </button>
+    <button class="theme-opt" data-theme="deuteranopia" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#0d2c52;box-shadow:0 0 0 2px #f5a428"></span>
+      Deuteranopia-friendly
+    </button>
+    <button class="theme-opt" data-theme="high-contrast" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#000;box-shadow:0 0 0 2px #ffff00"></span>
+      High Contrast
+    </button>
+    <button class="theme-opt" data-theme="monochrome" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#1e1e1e;box-shadow:0 0 0 2px #d0d0d0"></span>
+      Monochrome
+    </button>
+  </div>
+
+  <div aria-live="polite" aria-atomic="true" class="theme-switcher__announce" id="theme-announce"></div>
+</aside>
+
+<script>
+(function () {
+  var PREF_KEY = 'kiwi-color-theme';
+  var labels = {
+    'default': 'Default',
+    'deuteranopia': 'Deuteranopia-friendly',
+    'high-contrast': 'High Contrast',
+    'monochrome': 'Monochrome'
+  };
+
+  var root    = document.documentElement;
+  var toggle  = document.getElementById('theme-toggle');
+  var panel   = document.getElementById('theme-panel');
+  var opts    = document.querySelectorAll('.theme-opt');
+  var announce = document.getElementById('theme-announce');
+
+  function applyTheme(theme, shouldAnnounce) {
+    if (theme && theme !== 'default') {
+      root.dataset.theme = theme;
+    } else {
+      delete root.dataset.theme;
+      theme = 'default';
+    }
+    opts.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.theme === theme));
+    });
+    if (shouldAnnounce && announce) {
+      announce.textContent = '';
+      // Force re-announcement with a slight delay
+      setTimeout(function () {
+        announce.textContent = 'Color theme changed to ' + (labels[theme] || theme);
+      }, 50);
+    }
+    try { localStorage.setItem(PREF_KEY, theme); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('kiwi-theme', { detail: theme }));
+  }
+
+  // Sync button states with whatever theme was applied by the anti-FOUC script
+  var saved;
+  try { saved = localStorage.getItem(PREF_KEY) || 'default'; } catch (e) { saved = 'default'; }
+  applyTheme(saved, false);
+
+  // Toggle panel open/close
+  toggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var opening = panel.hidden;
+    panel.hidden = !opening;
+    toggle.setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      // Focus first option when opening
+      var first = panel.querySelector('.theme-opt');
+      if (first) first.focus();
+    }
+  });
+
+  // Option selection
+  opts.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyTheme(btn.dataset.theme, true);
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    });
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function (e) {
+    var sw = document.getElementById('theme-switcher');
+    if (sw && !sw.contains(e.target)) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !panel.hidden) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    }
+  });
+})();
+</script>
+
+  </body>
+</html>

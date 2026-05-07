@@ -1,0 +1,23 @@
+[
+  {
+    "id": "rust-book",
+    "type": "web",
+    "title": "The Rust Programming Language",
+    "url": "https://doc.rust-lang.org/book/",
+    "source": "doc.rust-lang.org"
+  },
+  {
+    "id": "embassy",
+    "type": "web",
+    "title": "Embassy — async embedded framework for Rust",
+    "url": "https://embassy.dev",
+    "source": "embassy.dev"
+  },
+  {
+    "id": "kiwi-hw",
+    "type": "web",
+    "title": "Kiwi Hardware Documentation",
+    "url": "https://chickadee-smallsat.github.io/kiwi/latest",
+    "source": "chickadee-smallsat.github.io"
+  }
+]

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Kiwi Firmware | Embedded firmware documentation for the Kiwi (RP2350B).</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Kiwi Firmware" />
+<meta name="author" content="Chickadee" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:site_name" content="Kiwi Firmware" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Kiwi Firmware" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","author":{"@type":"Person","name":"Chickadee"},"description":"Embedded firmware documentation for the Kiwi (RP2350B).","headline":"Kiwi Firmware","url":"/kiwi-firmware/v0.0.1/sections/prerequisites.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap" as="style" type="text/css" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#157878">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="/kiwi-firmware/v0.0.1/assets/css/style.css">
+    <link rel="icon" href="/kiwi-firmware/v0.0.1/favicon.ico" type="image/x-icon">
+<script>try{var _kct=localStorage.getItem('kiwi-color-theme');if(_kct&&_kct!=='default')document.documentElement.dataset.theme=_kct;}catch(e){}</script>
+<script>MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},options:{skipHtmlTags:['script','noscript','style','textarea','pre']}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<script>window.SITE_BASEURL = "/kiwi-firmware/v0.0.1";</script>
+<script src="/kiwi-firmware/v0.0.1/assets/js/manual.js" defer></script>
+
+  </head>
+  <body>
+    <a id="skip-to-content" href="#content">Skip to the content.</a>
+
+    <header class="page-header" role="banner">
+      <h1 class="project-name">Kiwi Firmware</h1>
+      <h2 class="project-tagline">Embedded firmware documentation for the Kiwi (RP2350B).</h2>
+      
+        <a href="https://github.com/chickadee-smallsat/kiwi-firmware" class="btn">View on GitHub</a>
+      
+      
+    </header>
+
+    <main id="content" class="main-content" role="main">
+      <section class="manual-sheet" id="prerequisites">
+
+  <h1 id="prerequisites">Prerequisites</h1>
+
+  <h2 id="supported-platforms">Supported Platforms</h2>
+
+  <p>The tools required to compile the Kiwi firmware runs on the following host operating systems:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>Minimum Version</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Linux</strong> (x86-64 / ARM64)</td>
+        <td>Any modern distribution (Ubuntu 20.04+, Fedora 38+, Arch, etc.)</td>
+        <td>Recommended platform</td>
+      </tr>
+      <tr>
+        <td><strong>macOS</strong> (x86-64 / Apple Silicon)</td>
+        <td>macOS 12 Monterey or later</td>
+        <td>Same setup script as Linux</td>
+      </tr>
+      <tr>
+        <td><strong>Windows</strong> (x86-64)</td>
+        <td>Windows 10 (21H2) or later</td>
+        <td>Requires MSVC C++ Build Tools</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <blockquote>
+    <p><strong>Note:</strong> 32-bit host systems are not supported.</p>
+  </blockquote>
+
+  <h2 id="required-hardware">Required Hardware</h2>
+
+  <ul>
+    <li><strong>Kiwi</strong> (based on the <a href="https://pip-assets.raspberrypi.com/categories/1214-rp2350/documents/RP-008373-DS-2-rp2350-datasheet.pdf">Raspberry Pi RP2350B</a>)</li>
+    <li>A supported <strong>debug probe</strong> — any probe compatible with <code class="language-plaintext highlighter-rouge">probe-rs</code> (e.g. <a href="https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html">Raspberry Pi Debug Probe</a>, J-Link, CMSIS-DAP). Using the Raspberry Pi Debug Probe is recommended to access the on-board <a href="https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-/Introduction-to-the-ARM-Serial-Wire-Debug--SWD--protocol">ARM Serial Wire Debugging interface</a> (not provided).</li>
+    <li>Cable to connect the debug probe to Kiwi (not provided)</li>
+  </ul>
+
+  <h2 id="software-dependencies-installed-by-the-setup-script">Software Dependencies Installed by the Setup Script</h2>
+
+  <p>The setup scripts (<code class="language-plaintext highlighter-rouge">setup.sh</code> / <code class="language-plaintext highlighter-rouge">setup.ps1</code>) install the following tools automatically:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://www.rust-lang.org/">Rust</a> (stable) via <code class="language-plaintext highlighter-rouge">rustup</code></td>
+        <td>Compiler and package manager</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">thumbv8m.main-none-eabihf</code> target</td>
+        <td>Cross-compilation target for the RP2350B (Cortex-M33)</td>
+      </tr>
+      <tr>
+        <td><a href="https://probe.rs/"><code class="language-plaintext highlighter-rouge">probe-rs</code></a></td>
+        <td>Flashing and RTT/defmt log streaming over the debug probe</td>
+      </tr>
+      <tr>
+        <td>MSVC C++ Build Tools <em>(Windows only)</em></td>
+        <td>Linker required by the Rust toolchain on Windows</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="additional-linux-step">Additional Linux Step</h3>
+
+  <p>On Linux, the setup script also installs <strong>udev rules</strong> (requiring <code class="language-plaintext highlighter-rouge">sudo</code>) so that the debug probe and Kiwi board are accessible to the current user without root privileges.</p>
+
+</section>
+
+
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <span class="site-footer-owner">
+            <a href="https://github.com/chickadee/kiwi-firmware-template">kiwi-firmware</a>
+            
+            is maintained by
+            <a href="mailto:sunipkmukherjee@gmail.com">Chickadee</a>.
+            
+          </span>
+          
+          <span class="site-footer-contact">
+            Contact us: <a href="mailto:sunipkmukherjee@gmail.com">sunipkmukherjee@gmail.com</a>
+          </span>
+          
+          <div class="version-selector" aria-label="Documentation version selector">
+  <label class="version-selector__label" for="version-select">Version</label>
+  <select id="version-select" class="version-selector__select">
+    <option value="" disabled selected>Loading versions...</option>
+  </select>
+</div>
+
+<script>
+(function () {
+  var baseurl = '/kiwi-firmware/v0.0.1';
+  var parts = baseurl.split('/').filter(Boolean);
+  var current = parts.length ? parts[parts.length - 1] : 'latest';
+  var docsRoot = parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : (parts.length === 1 ? '/' + parts[0] : '');
+  var versionsUrl = (docsRoot || '') + '/versions.json';
+
+  function targetUrl(version) {
+    var root = docsRoot || '';
+    return root + '/' + version + '/';
+  }
+
+  fetch(versionsUrl)
+    .then(function (res) {
+      return res.ok ? res.json() : [];
+    })
+    .catch(function () {
+      return [];
+    })
+    .then(function (versions) {
+      var select = document.getElementById('version-select');
+      if (!select || !Array.isArray(versions) || !versions.length) {
+        return;
+      }
+
+      select.innerHTML = '';
+      versions.forEach(function (v, i) {
+        var option = document.createElement('option');
+        option.value = v;
+        option.textContent = i === 0 ? v + ' (latest)' : v;
+        option.selected = (v === current);
+        select.appendChild(option);
+      });
+
+      if (!versions.includes(current)) {
+        select.selectedIndex = 0;
+      }
+
+      select.addEventListener('change', function () {
+        window.location.href = targetUrl(select.value) + window.location.hash;
+      });
+    });
+})();
+</script>
+
+          <span class="site-footer-credits">Generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+        </div>
+      </footer>
+    </main>
+    <aside class="theme-switcher" id="theme-switcher">
+  <button class="theme-switcher__toggle" id="theme-toggle"
+          aria-haspopup="true" aria-expanded="false" aria-controls="theme-panel"
+          aria-label="Color theme">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5
+               0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16
+               c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5
+               S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5
+               S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5
+               S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5
+               S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </svg>
+  </button>
+
+  <div class="theme-switcher__panel" id="theme-panel" hidden role="group" aria-label="Select color theme">
+    <p class="theme-switcher__heading">Color theme</p>
+
+    <button class="theme-opt" data-theme="default" aria-pressed="true">
+      <span class="theme-opt__dot" style="background:#0e3247;box-shadow:0 0 0 2px #7fd4f0"></span>
+      Default
+    </button>
+    <button class="theme-opt" data-theme="deuteranopia" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#0d2c52;box-shadow:0 0 0 2px #f5a428"></span>
+      Deuteranopia-friendly
+    </button>
+    <button class="theme-opt" data-theme="high-contrast" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#000;box-shadow:0 0 0 2px #ffff00"></span>
+      High Contrast
+    </button>
+    <button class="theme-opt" data-theme="monochrome" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#1e1e1e;box-shadow:0 0 0 2px #d0d0d0"></span>
+      Monochrome
+    </button>
+  </div>
+
+  <div aria-live="polite" aria-atomic="true" class="theme-switcher__announce" id="theme-announce"></div>
+</aside>
+
+<script>
+(function () {
+  var PREF_KEY = 'kiwi-color-theme';
+  var labels = {
+    'default': 'Default',
+    'deuteranopia': 'Deuteranopia-friendly',
+    'high-contrast': 'High Contrast',
+    'monochrome': 'Monochrome'
+  };
+
+  var root    = document.documentElement;
+  var toggle  = document.getElementById('theme-toggle');
+  var panel   = document.getElementById('theme-panel');
+  var opts    = document.querySelectorAll('.theme-opt');
+  var announce = document.getElementById('theme-announce');
+
+  function applyTheme(theme, shouldAnnounce) {
+    if (theme && theme !== 'default') {
+      root.dataset.theme = theme;
+    } else {
+      delete root.dataset.theme;
+      theme = 'default';
+    }
+    opts.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.theme === theme));
+    });
+    if (shouldAnnounce && announce) {
+      announce.textContent = '';
+      // Force re-announcement with a slight delay
+      setTimeout(function () {
+        announce.textContent = 'Color theme changed to ' + (labels[theme] || theme);
+      }, 50);
+    }
+    try { localStorage.setItem(PREF_KEY, theme); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('kiwi-theme', { detail: theme }));
+  }
+
+  // Sync button states with whatever theme was applied by the anti-FOUC script
+  var saved;
+  try { saved = localStorage.getItem(PREF_KEY) || 'default'; } catch (e) { saved = 'default'; }
+  applyTheme(saved, false);
+
+  // Toggle panel open/close
+  toggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var opening = panel.hidden;
+    panel.hidden = !opening;
+    toggle.setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      // Focus first option when opening
+      var first = panel.querySelector('.theme-opt');
+      if (first) first.focus();
+    }
+  });
+
+  // Option selection
+  opts.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyTheme(btn.dataset.theme, true);
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    });
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function (e) {
+    var sw = document.getElementById('theme-switcher');
+    if (sw && !sw.contains(e.target)) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !panel.hidden) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    }
+  });
+})();
+</script>
+
+  </body>
+</html>
