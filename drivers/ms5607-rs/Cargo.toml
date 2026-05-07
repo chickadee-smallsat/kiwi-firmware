@@ -1,0 +1,32 @@
+[package]
+name = "ms5607-rs"
+version = "0.0.1"
+edition = "2024"
+readme = "README.md"
+authors = ["Sunip K. Mukherjee <sunipkmukherjee@gmail.com>"]
+license = "Apache-2.0"
+keywords = ["barometer", "embedded-hal-driver", "no_std", "async"]
+categories = ["embedded", "hardware-support", "no-std"]
+documentation = "https://docs.rs/ms5607-rs"
+description = "Platform agnostic Rust driver for the MS5607 pressure sensor."
+
+include = ["/**/*.rs", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE"]
+
+[dependencies]
+bitfield-struct = { workspace = true }
+defmt = { workspace = true, optional = true }
+embedded-hal = { workspace = true, optional = true }
+embedded-hal-async = { workspace = true, optional = true }
+uom = { workspace = true, features = [
+    "f32",
+    "si",
+    "autoconvert",
+], optional = true }
+
+[features]
+default = ["defmt-messages", "async", "sync"]
+defmt = ["dep:defmt"]
+defmt-messages = ["defmt"]
+sync = ["dep:embedded-hal"]
+async = ["dep:embedded-hal-async"]
+float = ["dep:uom"]

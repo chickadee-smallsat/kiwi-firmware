@@ -1,0 +1,21 @@
+[package]
+name = "bme680-rs"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+bitfield-struct = { workspace = true }
+defmt = { workspace = true, optional = true }
+embassy-sync = { workspace = true, optional = true }
+embedded-hal-async = { workspace = true }
+embedded-hal = { workspace = true, optional = true }
+libm = { workspace = true, default-features = false, optional = true }
+uom = { workspace = true, default-features = false, features = [
+    "f32",
+    "si",
+    "autoconvert",
+] }
+
+[features]
+defmt = ["dep:defmt"]
+defmt-messages = ["defmt"]

@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = [
+    "device-blob",
+    "drivers/bme680-rs",
+    "drivers/bmi323-rs",
+    "drivers/bmp390-rs",
+    "drivers/mmc5983ma",
+    "drivers/ms5607-rs",
+    "firmware",
+]
+default-members = ["firmware"]
+
+[workspace.dependencies]
+bitfield-struct = "0.13"
+defmt = { version = "1.0" }
+libm = { version = "0.2", default-features = false }
+embassy-sync = { version = "0.8" }
+embedded-hal = { version = "1.0" }
+embedded-hal-async = { version = "1.0" }
+uom = { version = "0.38", default-features = false }
+bme680-rs = { path = "drivers/bme680-rs", default-features = false }
+bmi323-rs = { path = "drivers/bmi323-rs", default-features = false }
+bmp390-rs = { path = "drivers/bmp390-rs", default-features = false }
+mmc5983ma = { path = "drivers/mmc5983ma", default-features = false }
+ms5607-rs = { path = "drivers/ms5607-rs", default-features = false }
+kiwi-measurements = { version = "0.2", default-features = false }
+device-blob = { path = "device-blob", default-features = false }
+
+[profile.release]
+debug = 0
+lto = true
+opt-level = 'z'
+
+[profile.dev]
+debug = 2
+lto = true
+opt-level = "z"

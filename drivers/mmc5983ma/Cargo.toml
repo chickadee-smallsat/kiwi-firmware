@@ -1,0 +1,35 @@
+[package]
+name = "mmc5983ma"
+version = "0.0.0"
+edition = "2021"
+description = "Sync and Async drivers for the MMC5983MA 3-axis magnetometer"
+authors = ["Sunip K. Mukherjee <sunipkmukherjee@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+keywords = [
+    "embassy",
+    "embedded-hal-async",
+    "async",
+    "embedded-hal",
+    "blocking",
+    "no_std",
+    "mmc5983",
+    "magnetometer",
+]
+
+[features]
+default = []
+defmt = ["dep:defmt", "dep:libm"]
+defmt-messages = ["defmt"]
+float = ["uom/f32", "uom/si", "uom/autoconvert", "dep:libm"]
+async = ["dep:embedded-hal-async", "dep:embassy-sync"]
+sync = ["dep:embedded-hal"]
+
+[dependencies]
+bitfield-struct = { workspace = true }
+defmt = { workspace = true, "optional" = true }
+embedded-hal-async = { workspace = true, optional = true }
+embedded-hal = { workspace = true, optional = true }
+libm = { workspace = true, default-features = false, optional = true }
+embassy-sync = { workspace = true, optional = true }
+uom = { workspace = true, default-features = false }

@@ -1,0 +1,4 @@
+src/wifi_fw_consts.rs
+flash-wifi-fw.sh
+flash-wifi-fw.bat
+wifi_creds.bin

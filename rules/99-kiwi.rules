@@ -1,0 +1,1 @@
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="c001", ATTRS{idProduct}=="bee5", MODE="0666"

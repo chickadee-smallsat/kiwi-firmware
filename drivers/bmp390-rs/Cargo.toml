@@ -1,0 +1,42 @@
+[package]
+name = "bmp390-rs"
+version = "0.0.1"
+edition = "2021"
+readme = "README.md"
+authors = ["Sunip K. Mukherjee <sunipkmukherjee@gmail.com>"]
+license = "Apache-2.0"
+keywords = [
+    "barometer",
+    "embedded-hal-driver",
+    "no_std",
+    "async",
+]
+categories = ["embedded", "hardware-support", "no-std"]
+documentation = "https://docs.rs/bmp390-rs"
+description = "Platform agnostic Rust driver for the BMP390 pressure sensor."
+
+include = [
+    "/**/*.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+]
+
+
+[features]
+default = ["float", "async", "sync"]
+defmt = ["dep:defmt"]
+defmt-messages = ["defmt"]
+float = []
+async = ["dep:embedded-hal-async", "dep:embassy-sync"]
+sync = ["dep:embedded-hal"]
+
+[dependencies]
+bitfield-struct = { workspace = true }
+defmt = { workspace = true, "optional" = true }
+embassy-sync = { workspace = true, optional = true }
+embedded-hal-async = { workspace = true, optional = true }
+embedded-hal = { workspace = true, optional = true }
+libm = { workspace = true, default-features = false }
+uom = { workspace = true, default-features = false }

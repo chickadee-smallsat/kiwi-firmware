@@ -1,0 +1,26 @@
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+# Default runner for ARM Cortex-M microcontrollers using probe-rs. 
+# This is suitable for Kiwi. 
+# If you are not using the Raspberry Pi Debug Probe, comment out the probe-rs runner and uncomment the picotool runner for Raspberry Pi Pico.
+runner = "probe-rs run --chip RP235x --protocol swd" 
+
+# Alternative runner for Raspberry Pi Pico, using picotool. Uncomment this line and comment the probe-rs line to use this runner.
+# runner = "picotool load -u -v -x --force"
+
+[build]
+target = "thumbv8m.main-none-eabihf" # RP2350x
+
+[target.thumbv8m.main-none-eabihf]
+linker = "rust-lld"
+rustflags = [
+    "-C",
+    "link-arg=--nmagic",
+    "-C",
+    "link-arg=-Tlink.x",
+    "-C",
+    "link-arg=-Tdefmt.x",
+]
+
+[env]
+DEFMT_LOG = "info" # Set the default log level for defmt
+EMBASSY_TASK_WATCHDOG_MAX_TASKS = "6" # Set the maximum number of tasks for the Embassy task watchdog

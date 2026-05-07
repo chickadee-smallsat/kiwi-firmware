@@ -1,0 +1,17 @@
+**/target
+**/*.nc
+**/__pycache__
+**/.DS_Store
+
+# Project specific
+**/src/wifi_fw_consts.rs
+**/flash-wifi-fw.sh
+**/flash-wifi-fw.bat
+**/wifi_creds.bin
+.kiwi_*
+
+# Jekyll build artifacts
+docs/_site/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/.bundle/
