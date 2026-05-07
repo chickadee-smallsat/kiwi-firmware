@@ -1,0 +1,3264 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Kiwi Firmware Documentation | Kiwi Firmware</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Kiwi Firmware Documentation" />
+<meta name="author" content="Chickadee" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:site_name" content="Kiwi Firmware" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Kiwi Firmware Documentation" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","author":{"@type":"Person","name":"Chickadee"},"description":"Embedded firmware documentation for the Kiwi (RP2350B).","headline":"Kiwi Firmware Documentation","name":"Kiwi Firmware","url":"/kiwi-firmware/v0.0.1-pre0/"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap" as="style" type="text/css" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#157878">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="/kiwi-firmware/v0.0.1-pre0/assets/css/style.css">
+    <link rel="icon" href="/kiwi-firmware/v0.0.1-pre0/favicon.ico" type="image/x-icon">
+<script>try{var _kct=localStorage.getItem('kiwi-color-theme');if(_kct&&_kct!=='default')document.documentElement.dataset.theme=_kct;}catch(e){}</script>
+<script>MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},options:{skipHtmlTags:['script','noscript','style','textarea','pre']}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<script>window.SITE_BASEURL = "/kiwi-firmware/v0.0.1-pre0";</script>
+<script src="/kiwi-firmware/v0.0.1-pre0/assets/js/manual.js" defer></script>
+
+  </head>
+  <body>
+    <a id="skip-to-content" href="#content">Skip to the content.</a>
+
+    <header class="page-header" role="banner">
+      <h1 class="project-name">Kiwi Firmware Documentation</h1>
+      <h2 class="project-tagline">Embedded firmware documentation for the Kiwi (RP2350B).</h2>
+      
+        <a href="https://github.com/chickadee-smallsat/kiwi-firmware" class="btn">View on GitHub</a>
+      
+      
+    </header>
+
+    <main id="content" class="main-content" role="main">
+      <section class="cover-hero" aria-labelledby="cover-title">
+  <div class="cover-hero__panel">
+    <div class="cover-hero__topline">
+      <h1 id="cover-title" class="cover-hero__word">KIWI</h1>
+      <p class="cover-hero__title-block">Firmware</p>
+    </div>
+    <div class="cover-hero__artframe" aria-hidden="true">
+      <div class="cover-hero__artbackdrop"></div>
+      
+      <img class="cover-hero__bird" src="/kiwi-firmware/v0.0.1-pre0/assets/backdrop/logo-with-wire.png" alt="" />
+      
+    </div>
+    <p class="cover-hero__manual">MANUAL</p>
+  </div>
+</section>
+
+<section class="manual-sheet" id="manual-start">
+
+  <h1 id="description">Description</h1>
+
+  <p>This document covers the <strong>Kiwi Firmware</strong> — embedded firmware for Kiwi. 
+The firmware is written in the <a href="https://rust-lang.org">Rust Programming Language</a><span class="cite-ref" data-ref="rust-book"></span> using the <a href="https://embassy.dev">Embassy</a><span class="cite-ref" data-ref="embassy"></span> async framework and provides sensor acquisition, Wi-Fi access-point streaming, USB configuration, and hardware watchdog functionality.
+It targets Kiwi<span class="cite-ref" data-ref="kiwi-hw"></span> based on the Raspberry Pi RP2350B.</p>
+
+  <h2 id="key-features">Key Features</h2>
+
+  <ul>
+    <li>Async sensor tasks for magnetometer (MMC5983MA), IMU (BMI323), barometer (MS5607), and environmental sensor (BME680)</li>
+    <li>Wi-Fi access point/client mode with UDP measurement streaming via <code class="language-plaintext highlighter-rouge">embassy-net</code></li>
+    <li>USB HID/CDC interface for configuration</li>
+    <li>Per-task hardware watchdog with reset-reason logging</li>
+    <li>Compile-time sensor selection via Cargo feature flags</li>
+    <li><code class="language-plaintext highlighter-rouge">no_std</code> sensor driver library crates for reuse in derived projects</li>
+  </ul>
+
+  <blockquote class="callout-warning">
+    <p><strong>WARNINGS &amp; Safety Measures</strong>
+Electrical devices connected to Kiwi should not be near any liquids and/or high temperature environments (above 85°C, 185°F) as it may cause internal or external damage to the Kiwi, your device connected to the Kiwi, and/or injury to yourself.
+Kiwi is designed primarily to be powered over USB (5V), consuming around 250 mW of power.</p>
+
+    <p>Kiwi is an exposed PCB, with electronic components sensitive to static discharge.
+Use caution while handling.</p>
+  </blockquote>
+
+</section>
+
+<section class="manual-sheet">
+
+  <h1 class="no_toc" id="table-of-contents">TABLE OF CONTENTS</h1>
+
+<ul id="markdown-toc">
+  <li><a href="#description" id="markdown-toc-description">Description</a>    <ul>
+      <li><a href="#key-features" id="markdown-toc-key-features">Key Features</a></li>
+    </ul>
+  </li>
+  <li><a href="#prerequisites" id="markdown-toc-prerequisites">Prerequisites</a>    <ul>
+      <li><a href="#supported-platforms" id="markdown-toc-supported-platforms">Supported Platforms</a></li>
+      <li><a href="#required-hardware" id="markdown-toc-required-hardware">Required Hardware</a></li>
+      <li><a href="#software-dependencies-installed-by-the-setup-script" id="markdown-toc-software-dependencies-installed-by-the-setup-script">Software Dependencies Installed by the Setup Script</a>        <ul>
+          <li><a href="#additional-linux-step" id="markdown-toc-additional-linux-step">Additional Linux Step</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#getting-the-source-code" id="markdown-toc-getting-the-source-code">Getting the Source Code</a>    <ul>
+      <li><a href="#linux-and-macos" id="markdown-toc-linux-and-macos">Linux and macOS</a></li>
+      <li><a href="#windows" id="markdown-toc-windows">Windows</a></li>
+    </ul>
+  </li>
+  <li><a href="#visual-studio-code" id="markdown-toc-visual-studio-code">Visual Studio Code</a>    <ul>
+      <li><a href="#installing-vs-code" id="markdown-toc-installing-vs-code">Installing VS Code</a></li>
+      <li><a href="#opening-the-repository" id="markdown-toc-opening-the-repository">Opening the Repository</a></li>
+      <li><a href="#initializing-git-tracking" id="markdown-toc-initializing-git-tracking">Initializing Git Tracking</a></li>
+      <li><a href="#recommended-extensions" id="markdown-toc-recommended-extensions">Recommended Extensions</a></li>
+      <li><a href="#why-vs-code" id="markdown-toc-why-vs-code">Why VS Code?</a></li>
+    </ul>
+  </li>
+  <li><a href="#setup" id="markdown-toc-setup">Setup</a>    <ul>
+      <li><a href="#linux-and-macos-1" id="markdown-toc-linux-and-macos-1">Linux and macOS</a></li>
+      <li><a href="#windows-1" id="markdown-toc-windows-1">Windows</a></li>
+      <li><a href="#verifying-the-installation" id="markdown-toc-verifying-the-installation">Verifying the Installation</a></li>
+      <li><a href="#building-and-flashing" id="markdown-toc-building-and-flashing">Building and Flashing</a></li>
+      <li><a href="#attaching-to-a-running-target" id="markdown-toc-attaching-to-a-running-target">Attaching to a Running Target</a></li>
+      <li><a href="#panic-wifi-firmware-verification-failed" id="markdown-toc-panic-wifi-firmware-verification-failed">Panic: WiFi firmware verification failed</a>        <ul>
+          <li><a href="#possible-causes" id="markdown-toc-possible-causes">Possible causes</a></li>
+          <li><a href="#fix" id="markdown-toc-fix">Fix</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#repository-structure" id="markdown-toc-repository-structure">Repository Structure</a></li>
+  <li><a href="#firmware-architecture" id="markdown-toc-firmware-architecture">Firmware Architecture</a></li>
+  <li><a href="#references" id="markdown-toc-references">References</a></li>
+</ul>
+
+</section>
+
+<section class="manual-sheet" id="prerequisites">
+
+  <h1 id="prerequisites">Prerequisites</h1>
+
+  <h2 id="supported-platforms">Supported Platforms</h2>
+
+  <p>The tools required to compile the Kiwi firmware runs on the following host operating systems:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>Minimum Version</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Linux</strong> (x86-64 / ARM64)</td>
+        <td>Any modern distribution (Ubuntu 20.04+, Fedora 38+, Arch, etc.)</td>
+        <td>Recommended platform</td>
+      </tr>
+      <tr>
+        <td><strong>macOS</strong> (x86-64 / Apple Silicon)</td>
+        <td>macOS 12 Monterey or later</td>
+        <td>Same setup script as Linux</td>
+      </tr>
+      <tr>
+        <td><strong>Windows</strong> (x86-64)</td>
+        <td>Windows 10 (21H2) or later</td>
+        <td>Requires MSVC C++ Build Tools</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <blockquote>
+    <p><strong>Note:</strong> 32-bit host systems are not supported.</p>
+  </blockquote>
+
+  <h2 id="required-hardware">Required Hardware</h2>
+
+  <ul>
+    <li><strong>Kiwi</strong> (based on the <a href="https://pip-assets.raspberrypi.com/categories/1214-rp2350/documents/RP-008373-DS-2-rp2350-datasheet.pdf">Raspberry Pi RP2350B</a>)</li>
+    <li>A supported <strong>debug probe</strong> — any probe compatible with <code class="language-plaintext highlighter-rouge">probe-rs</code> (e.g. <a href="https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html">Raspberry Pi Debug Probe</a>, J-Link, CMSIS-DAP). Using the Raspberry Pi Debug Probe is recommended to access the on-board <a href="https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-/Introduction-to-the-ARM-Serial-Wire-Debug--SWD--protocol">ARM Serial Wire Debugging interface</a> (not provided).</li>
+    <li>Cable to connect the debug probe to Kiwi (not provided)</li>
+  </ul>
+
+  <h2 id="software-dependencies-installed-by-the-setup-script">Software Dependencies Installed by the Setup Script</h2>
+
+  <p>The setup scripts (<code class="language-plaintext highlighter-rouge">setup.sh</code> / <code class="language-plaintext highlighter-rouge">setup.ps1</code>) install the following tools automatically:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://www.rust-lang.org/">Rust</a> (stable) via <code class="language-plaintext highlighter-rouge">rustup</code></td>
+        <td>Compiler and package manager</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">thumbv8m.main-none-eabihf</code> target</td>
+        <td>Cross-compilation target for the RP2350B (Cortex-M33)</td>
+      </tr>
+      <tr>
+        <td><a href="https://probe.rs/"><code class="language-plaintext highlighter-rouge">probe-rs</code></a></td>
+        <td>Flashing and RTT/defmt log streaming over the debug probe</td>
+      </tr>
+      <tr>
+        <td>MSVC C++ Build Tools <em>(Windows only)</em></td>
+        <td>Linker required by the Rust toolchain on Windows</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="additional-linux-step">Additional Linux Step</h3>
+
+  <p>On Linux, the setup script also installs <strong>udev rules</strong> (requiring <code class="language-plaintext highlighter-rouge">sudo</code>) so that the debug probe and Kiwi board are accessible to the current user without root privileges.</p>
+
+</section>
+
+<section class="manual-sheet" id="source-code">
+
+  <h1 id="getting-the-source-code">Getting the Source Code</h1>
+
+  <p>The firmware source code is distributed as release archives attached to the <a href="https://github.com/chickadee-smallsat/kiwi-firmware/releases/latest">latest GitHub release</a>.</p>
+
+  <h2 id="linux-and-macos">Linux and macOS</h2>
+
+  <p>Download the tarball (or zip) from the release page, then extract it using either method:</p>
+
+  <p><strong>File manager:</strong> Double-click the archive to open it in your file manager, then extract it to a folder of your choice.</p>
+
+  <p><strong>Terminal:</strong></p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">tar -xf kiwi-firmware-*.tar.gz
+cd kiwi-firmware-*/
+</span></code></pre></div>  </div>
+
+  <h2 id="windows">Windows</h2>
+
+  <p>Download the <strong>zip</strong> from the release page, then extract it using either method:</p>
+
+  <p><strong>File Explorer:</strong> Right-click the zip file and select <ui-menu>Extract All…</ui-menu>, choose a destination folder, and click <ui-btn>Extract</ui-btn>.</p>
+
+  <p><strong>PowerShell:</strong></p>
+
+  <div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Expand-Archive</span><span class="w"> </span><span class="nx">kiwi-firmware-</span><span class="o">*.</span><span class="nf">zip</span><span class="w"> </span><span class="nt">-DestinationPath</span><span class="w"> </span><span class="o">.</span><span class="w">
+</span><span class="n">cd</span><span class="w"> </span><span class="nx">kiwi-firmware-</span><span class="o">*</span><span class="nx">\</span><span class="w">
+</span></code></pre></div>  </div>
+
+  <p>All subsequent commands in this guide should be run from the extracted repository root.</p>
+
+</section>
+
+<section class="manual-sheet" id="vscode">
+
+  <h1 id="visual-studio-code">Visual Studio Code</h1>
+
+  <p><a href="https://code.visualstudio.com/">Visual Studio Code</a> (VS Code) is a free, open-source editor with first-class support for Rust and embedded development. While any editor works, VS Code is recommended for this project.</p>
+
+  <h2 id="installing-vs-code">Installing VS Code</h2>
+
+  <p>Download and install VS Code for your platform from <a href="https://code.visualstudio.com/download">code.visualstudio.com</a>.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>Installation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Linux</strong></td>
+        <td>Download the <code class="language-plaintext highlighter-rouge">.deb</code> / <code class="language-plaintext highlighter-rouge">.rpm</code> package, or install via your package manager (<code class="language-plaintext highlighter-rouge">sudo apt install code</code>, <code class="language-plaintext highlighter-rouge">sudo dnf install code</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>macOS</strong></td>
+        <td>Download the <code class="language-plaintext highlighter-rouge">.zip</code>, extract it, and drag <strong>Visual Studio Code</strong> to your <strong>Applications</strong> folder</td>
+      </tr>
+      <tr>
+        <td><strong>Windows</strong></td>
+        <td>Run the <code class="language-plaintext highlighter-rouge">.exe</code> installer</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="opening-the-repository">Opening the Repository</h2>
+
+  <p>Open the extracted repository folder in VS Code using any of the following methods:</p>
+
+  <p><strong>File menu:</strong> <ui-tab>File</ui-tab> → <ui-menu>Open Folder…</ui-menu>, then navigate to the repository root.</p>
+
+  <p><strong>File Explorer / Finder (macOS):</strong> Drag the repository folder onto the VS Code icon in the Dock or taskbar.</p>
+
+  <p><strong>Terminal:</strong></p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">code kiwi-firmware-*/
+</span></code></pre></div>  </div>
+
+  <p>VS Code will prompt you to install the recommended extensions — click <ui-btn>Install</ui-btn> to accept.</p>
+
+  <h2 id="initializing-git-tracking">Initializing Git Tracking</h2>
+
+  <p>Because the source code is downloaded as an archive rather than cloned from a repository, it does not come with Git history. Initializing Git tracking locally lets you record your own changes, experiment safely on branches, and revert to a known-good state at any time.</p>
+
+  <p>From the repository root, run:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">git init
+git add .
+git commit -m "Initial commit"
+</span></code></pre></div>  </div>
+
+  <p>VS Code’s built-in <strong>Source Control</strong> view (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> / <kbd>⌃⇧G</kbd>) will then show modified files, diffs, and let you stage and commit changes without leaving the editor.</p>
+
+  <blockquote>
+    <p><strong>Tip:</strong> If you want to push your changes to your own remote (e.g. a private GitHub repository), create the remote first and then add it:</p>
+
+    <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git push -u origin main
+</span></code></pre></div>    </div>
+  </blockquote>
+
+  <h2 id="recommended-extensions">Recommended Extensions</h2>
+
+  <p>Install the following extensions from the <a href="https://code.visualstudio.com/docs/editor/extension-marketplace">Extensions view</a> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> / <kbd>⇧⌘X</kbd>):</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Extension</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer">rust-analyzer</a></td>
+        <td>Full Rust language support: autocomplete, inline diagnostics, go-to-definition, and refactoring</td>
+      </tr>
+      <tr>
+        <td><a href="https://marketplace.visualstudio.com/items?itemName=probe-rs.probe-rs-debugger">probe-rs-debugger</a></td>
+        <td>On-chip debugging, breakpoints, and live variable inspection over the debug probe</td>
+      </tr>
+      <tr>
+        <td><a href="https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml">Even Better TOML</a></td>
+        <td>Syntax highlighting and validation for <code class="language-plaintext highlighter-rouge">Cargo.toml</code> files</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="why-vs-code">Why VS Code?</h2>
+
+  <ul>
+    <li><strong>Inline errors and warnings</strong> — <code class="language-plaintext highlighter-rouge">rust-analyzer</code> shows compiler diagnostics directly in the editor as you type, without needing to run <code class="language-plaintext highlighter-rouge">cargo build</code> manually.</li>
+    <li><strong>Autocomplete and documentation</strong> — hover over any symbol to see its type signature and documentation, and get context-aware completions.</li>
+    <li><strong>On-chip debugging</strong> — the <code class="language-plaintext highlighter-rouge">probe-rs-debugger</code> extension lets you set breakpoints, step through firmware, and inspect variables on the live target via the debug probe, all without leaving the editor.</li>
+    <li><strong>Integrated terminal</strong> — run <code class="language-plaintext highlighter-rouge">cargo run</code>, flash firmware, and stream RTT logs from a terminal panel inside the editor.</li>
+    <li><strong>Git integration</strong> — stage, commit, and diff changes without switching windows.</li>
+  </ul>
+
+</section>
+
+<section class="manual-sheet" id="setup">
+
+  <h1 id="setup">Setup</h1>
+
+  <h2 id="linux-and-macos-1">Linux and macOS</h2>
+
+  <p>Run the setup script from the repository root. It will install <code class="language-plaintext highlighter-rouge">rustup</code>, the Rust stable toolchain, the RP2350 cross-compilation target, and <code class="language-plaintext highlighter-rouge">probe-rs</code>. On Linux it also installs udev rules (requires <code class="language-plaintext highlighter-rouge">sudo</code>).</p>
+
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./setup.sh
+</code></pre></div>  </div>
+
+  <p>After the script completes, start a new shell session (or source the Cargo environment) to make the new tools available on <code class="language-plaintext highlighter-rouge">PATH</code>:</p>
+
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> ~/.cargo/env
+</code></pre></div>  </div>
+
+  <p><strong>Linux only — udev rules:</strong><br />
+The script installs udev rules automatically. If you need to do this manually:</p>
+
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo install</span> <span class="nt">-m</span> 644 rules/<span class="k">*</span>.rules /etc/udev/rules.d/
+<span class="nb">sudo </span>udevadm control <span class="nt">--reload-rules</span> <span class="o">&amp;&amp;</span> <span class="nb">sudo </span>udevadm trigger
+</code></pre></div>  </div>
+
+  <h2 id="windows-1">Windows</h2>
+
+  <p>Open <strong>PowerShell as Administrator</strong> and run the setup script from the repository root:</p>
+
+  <div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\setup.ps1</span><span class="w">
+</span></code></pre></div>  </div>
+
+  <p>The script will:</p>
+
+  <ol>
+    <li>Install (or update) the <strong>MSVC C++ Build Tools</strong> with the <em>Desktop development with C++</em> workload</li>
+    <li>Install <code class="language-plaintext highlighter-rouge">rustup</code> and the Rust stable toolchain</li>
+    <li>Add the <code class="language-plaintext highlighter-rouge">thumbv8m.main-none-eabihf</code> cross-compilation target</li>
+    <li>Install <code class="language-plaintext highlighter-rouge">probe-rs</code></li>
+  </ol>
+
+  <p>Close the PowerShell window and open a new one before building, so that all updated <code class="language-plaintext highlighter-rouge">PATH</code> entries take effect.</p>
+
+  <h2 id="verifying-the-installation">Verifying the Installation</h2>
+
+  <p>After setup, confirm the key tools are available:</p>
+
+  <p>Linux / macOS:</p>
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">rustc --version          #</span><span class="w"> </span>e.g. rustc 1.87.0 <span class="o">(</span>...<span class="o">)</span>
+<span class="gp">cargo --version          #</span><span class="w"> </span>e.g. cargo 1.87.0 <span class="o">(</span>...<span class="o">)</span>
+<span class="gp">probe-rs --version       #</span><span class="w"> </span>e.g. probe-rs 0.27.0
+<span class="go">rustup target list --installed | grep thumbv8m
+</span></code></pre></div>  </div>
+
+  <p>Windows:</p>
+  <div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">rustc</span><span class="w"> </span><span class="nt">--version</span><span class="w">          </span><span class="c"># e.g. rustc 1.87.0 (...)</span><span class="w">
+</span><span class="n">cargo</span><span class="w"> </span><span class="nt">--version</span><span class="w">          </span><span class="c"># e.g. cargo 1.87.0 (...)</span><span class="w">
+</span><span class="n">probe-rs</span><span class="w"> </span><span class="nt">--version</span><span class="w">       </span><span class="c"># e.g. probe-rs 0.27.0</span><span class="w">
+</span><span class="n">rustup</span><span class="w"> </span><span class="nx">target</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="nt">--installed</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">Select-String</span><span class="w"> </span><span class="nx">thumbv8m</span><span class="w">
+</span></code></pre></div>  </div>
+
+  <h2 id="building-and-flashing">Building and Flashing</h2>
+
+  <p>Connect your debug probe to the Kiwi, then run:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release
+</span></code></pre></div>  </div>
+
+  <p>This builds the firmware in release mode and flashes it via <code class="language-plaintext highlighter-rouge">probe-rs</code>. RTT/defmt log output is streamed to the terminal automatically.</p>
+
+  <p>To enable specific sensor subsystems, pass the relevant feature flags:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release --features sensors-all
+</span></code></pre></div>  </div>
+
+  <p>See the <a href="https://github.com/chickadee-smallsat/kiwi-firmware/blob/master/firmware/Cargo.toml">firmware Cargo.toml</a> for the full list of available features.</p>
+
+  <h2 id="attaching-to-a-running-target">Attaching to a Running Target</h2>
+
+  <p>To attach <code class="language-plaintext highlighter-rouge">probe-rs</code> to already-running firmware without reflashing:</p>
+
+  <p>Linux / macOS:</p>
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>probe-rs attach target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
+</code></pre></div>  </div>
+
+  <p>Windows:</p>
+  <div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">probe-rs</span><span class="w"> </span><span class="nx">attach</span><span class="w"> </span><span class="nx">target\thumbv8m.main-none-eabihf\release\kiwi-firmware-base</span><span class="w">
+</span></code></pre></div>  </div>
+
+  <h2 id="panic-wifi-firmware-verification-failed">Panic: WiFi firmware verification failed</h2>
+
+  <p>At startup, the firmware reads the CYW43439 Wi-Fi firmware blob and control logic and management blob from dedicated regions of the Kiwi’s on-board memory and verifies each with a CRC-16 checksum.
+This panic means the data at those addresses did not match the checksum baked in at compile time.</p>
+
+  <h4 id="possible-causes">Possible causes</h4>
+
+  <ul>
+    <li>The Wi-Fi firmware and CLM blobs have never been flashed to the device.</li>
+    <li>The main firmware was rebuilt (changing the flash layout) without re-flashing the WiFi blobs.</li>
+    <li>The blobs were flashed to the wrong addresses.</li>
+  </ul>
+
+  <h4 id="fix">Fix</h4>
+
+  <p>Build the project once so the helper flash script is generated, then run it <strong>before</strong> flashing the main firmware:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">#</span><span class="w"> </span>Build <span class="o">(</span>generates the script<span class="o">)</span>
+<span class="go">cargo build --release
+</span></code></pre></div>  </div>
+
+  <p>On Linux / macOS — flash WiFi FW, CLM, and credentials</p>
+
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./firmware/flash-wifi-fw.sh
+</code></pre></div>  </div>
+
+  <p>On Windows:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">.\firmware\flash-wifi-fw.bat
+</span></code></pre></div>  </div>
+
+  <p>The script calls <code class="language-plaintext highlighter-rouge">probe-rs download</code> three times, writing the WiFi firmware, CLM blob, and device-credentials page to the addresses computed by <code class="language-plaintext highlighter-rouge">build.rs</code>. After the script completes, flash the main firmware as usual:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release
+</span></code></pre></div>  </div>
+
+</section>
+
+<section class="manual-sheet" id="repository">
+
+  <h1 id="repository-structure">Repository Structure</h1>
+
+  <p>The <code>kiwi-firmware</code> repository is a <strong>Cargo workspace</strong>.
+     Click a <strong>directory</strong> to expand or collapse it;
+     click a <strong>file</strong> to read what it does.</p>
+
+  <div class="repo-widget">
+    <div class="repo-tree-col">
+      <div class="repo-root-label">
+        <svg class="repo-svg-icon repo-svg-icon--dir" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1z" /></svg>
+        kiwi-firmware<span style="opacity:0.45">/</span>
+      </div>
+      <ul class="repo-tree" id="repoTree" role="tree" aria-label="Repository file tree"></ul>
+    </div>
+
+    <div class="repo-info" id="repoInfo" aria-live="polite" aria-atomic="true">
+      <p class="repo-info__hint">Click any entry in the tree.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+/* ── Repo widget ──────────────────────────────────────────────────── */
+.repo-widget {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  align-items: start;
+}
+@media (min-width: 620px) {
+  .repo-widget {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+}
+
+/* Root label */
+.repo-root-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e8f7fd;
+  padding: 0.2rem 0.45rem 0.3rem;
+  border-bottom: 1px solid rgba(199,235,248,0.1);
+  margin-bottom: 0.3rem;
+}
+
+/* SVG icons */
+.repo-svg-icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.repo-svg-icon--dir  { color: #7ebde8; }
+.repo-svg-icon--file { color: rgba(199,235,248,0.44); }
+
+/* Tree list */
+.repo-tree,
+.repo-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.repo-tree {
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.875rem;
+}
+.repo-tree ul {
+  padding-left: 1rem;
+  border-left: 1px solid rgba(199,235,248,0.12);
+  margin-left: 0.65rem;
+}
+
+/* Node button */
+.repo-node {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  background: none;
+  border: none;
+  color: rgba(220,243,252,0.78);
+  font: inherit;
+  text-align: left;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 110ms ease, color 110ms ease;
+}
+.repo-node:hover {
+  background: rgba(199,235,248,0.09);
+  color: #e8f7fd;
+}
+.repo-node--active {
+  background: rgba(127,212,240,0.14) !important;
+  color: #7fd4f0 !important;
+}
+.repo-node--active .repo-svg-icon--dir,
+.repo-node--active .repo-svg-icon--file { color: #7fd4f0; }
+.repo-node--dir {
+  font-weight: 600;
+  color: rgba(220,243,252,0.94);
+}
+
+/* Chevron */
+.repo-chevron {
+  display: inline-block;
+  font-size: 0.58em;
+  width: 0.85em;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.45;
+  transition: transform 170ms ease, opacity 170ms ease;
+}
+.repo-node--dir:hover .repo-chevron,
+.repo-node--dir.repo-node--active .repo-chevron { opacity: 0.75; }
+.repo-node--open .repo-chevron {
+  transform: rotate(90deg);
+  opacity: 0.75;
+}
+
+/* Children slide */
+.repo-children {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 190ms ease;
+  overflow: hidden;
+}
+.repo-children--open { grid-template-rows: 1fr; }
+.repo-children > ul  { min-height: 0; }
+
+/* Info panel */
+.repo-info {
+  background: rgba(199,235,248,0.055);
+  border: 1px solid rgba(199,235,248,0.13);
+  border-radius: 0.85rem;
+  padding: 1rem 1.15rem;
+  min-height: 6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+}
+@media (min-width: 620px) {
+  .repo-info { position: sticky; top: 1.5rem; }
+}
+.repo-info__hint {
+  margin: 0;
+  color: rgba(220,243,252,0.35);
+  font-style: italic;
+  font-size: 0.875rem;
+  text-align: center;
+}
+.repo-info__name {
+  margin: 0;
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e8f7fd;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  word-break: break-all;
+}
+.repo-info__badge {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.12em 0.5em;
+  border-radius: 999px;
+  color: #fff;
+  flex-shrink: 0;
+  align-self: center;
+}
+.repo-info__badge--dir  { background: #2a6a8a; }
+.repo-info__badge--file { background: #1e5c42; }
+.repo-info__desc {
+  margin: 0;
+  color: rgba(220,243,252,0.84);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+</style>
+
+<script>
+(function () {
+  /* ── Tree data ─────────────────────────────────────────────────── */
+  var T = [
+    { n:"Cargo.toml",   t:"f", d:"Workspace manifest. Lists all member crates and pins shared dependency versions so every driver crate uses the same embedded-hal and defmt releases." },
+    { n:"Cargo.lock",   t:"f", d:"Auto-generated lockfile that pins every transitive dependency to a specific version. Committed to the repository to guarantee reproducible builds." },
+    { n:"CHANGELOG.md", t:"f", d:"Release notes and version history, following the Keep a Changelog convention." },
+    { n:"LICENSE",      t:"f", d:"Project licence." },
+    { n:"README.md",    t:"f", d:"Quick-start reference covering the repository layout, sensor feature flags, and build commands." },
+    { n:"setup.sh",     t:"f", d:"Linux and macOS setup script. Installs rustup, the Rust stable toolchain, the thumbv8m.main-none-eabihf cross-compilation target, probe-rs, and (on Linux) udev rules." },
+    { n:"setup.ps1",    t:"f", d:"Windows PowerShell setup script. Installs MSVC C++ Build Tools, rustup, the Rust stable toolchain, the thumbv8m.main-none-eabihf cross-compilation target, and probe-rs." },
+    { n:"config/", t:"d", d:"Linker configuration. Contains the memory map template consumed by the firmware build script.",
+      c:[
+        { n:"memory.x.template", t:"f", d:"Linker memory-map template for the RP2350B. Defines the FLASH origin (0x10000000) and size, and the RAM origin and size. Copied into the linker search path by firmware/build.rs at compile time." },
+      ]
+    },
+    { n:"cyw43-firmware/", t:"d", d:"CYW43439 Wi-Fi chip firmware blobs required at link time. The blobs initialise the radio hardware and are distributed under the permissive binary licence included in this directory.",
+      c:[
+        { n:"LICENSE-permissive-binary-license-1.0.txt", t:"f", d:"Permissive binary licence covering the CYW43439 firmware blobs." },
+        { n:"README.md", t:"f", d:"Notes on the CYW43439 firmware blobs and their licence." },
+      ]
+    },
+    { n:"device-blob/", t:"d", d:"The device-blob crate — a no_std library that provides typed, compile-time access to flash-stored device configuration and firmware blobs.",
+      c:[
+        { n:"Cargo.toml", t:"f", d:"Crate manifest for device-blob. Declares it as a no_std library crate." },
+        { n:"README.md",  t:"f", d:"Usage notes for the device-blob crate." },
+        { n:"src/", t:"d", d:"Source files for the device-blob crate.",
+          c:[
+            { n:"lib.rs", t:"f", d:"Public API. Exposes typed references to flash regions holding device configuration and firmware blobs." },
+          ]
+        },
+      ]
+    },
+    { n:"drivers/", t:"d", d:"Collection of no_std sensor driver crates. Each driver is a standalone library with both blocking and async APIs, independently usable in derived projects.",
+      c:[
+        { n:"bme680-rs/", t:"d", d:"no_std driver for the BME680 environmental sensor — measures temperature, pressure, relative humidity, and gas resistance (used for IAQ index).",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for bme680-rs." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the BME680 driver." },
+            { n:"src/", t:"d", d:"BME680 driver source files.",
+              c:[
+                { n:"interface.rs", t:"f", d:"Hardware interface abstraction — wraps embedded-hal SPI or I2C peripherals to provide a unified register read/write API." },
+                { n:"lib.rs",       t:"f", d:"Public driver API: sensor initialisation, oversampling and filter configuration, and triggered measurement." },
+                { n:"registers.rs", t:"f", d:"BME680 register address constants and bitfield definitions." },
+              ]
+            },
+          ]
+        },
+        { n:"bmi323-rs/", t:"d", d:"no_std driver for the BMI323 6-axis IMU — measures 3-axis acceleration and 3-axis angular rate. Provides both blocking and async APIs.",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for bmi323-rs." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the BMI323 driver." },
+            { n:"src/", t:"d", d:"BMI323 driver source files.",
+              c:[
+                { n:"async.rs",     t:"f", d:"Async implementation using embedded-hal-async traits. Used by the Embassy sensor task in the firmware." },
+                { n:"config.rs",    t:"f", d:"Configuration types: output data rate, full-scale range, bandwidth filter, and power-mode enumerations." },
+                { n:"interface.rs", t:"f", d:"Hardware interface abstraction for SPI and I2C." },
+                { n:"lib.rs",       t:"f", d:"Public driver API and module re-exports." },
+                { n:"registers.rs", t:"f", d:"BMI323 register map and bitfield definitions." },
+                { n:"sync.rs",      t:"f", d:"Blocking implementation using embedded-hal traits." },
+              ]
+            },
+          ]
+        },
+        { n:"bmp390-rs/", t:"d", d:"no_std driver for the BMP390 precision barometer — measures pressure and temperature with high resolution. Provides both blocking and async APIs.",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for bmp390-rs." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the BMP390 driver." },
+            { n:"src/", t:"d", d:"BMP390 driver source files.",
+              c:[
+                { n:"async.rs",      t:"f", d:"Async implementation using embedded-hal-async traits." },
+                { n:"config.rs",     t:"f", d:"Configuration types: pressure and temperature oversampling, IIR filter coefficient, and output data rate." },
+                { n:"conversion.rs", t:"f", d:"Converts raw ADC readings to calibrated pressure and temperature using the BMP390 double-precision compensation formula and on-chip calibration coefficients." },
+                { n:"interface.rs",  t:"f", d:"Hardware interface abstraction for SPI and I2C." },
+                { n:"lib.rs",        t:"f", d:"Public driver API and module re-exports." },
+                { n:"registers.rs",  t:"f", d:"BMP390 register map and bitfield definitions." },
+                { n:"sync.rs",       t:"f", d:"Blocking implementation using embedded-hal traits." },
+              ]
+            },
+          ]
+        },
+        { n:"mmc5983ma/", t:"d", d:"no_std driver for the MMC5983MA 3-axis magnetometer — measures magnetic field with 18-bit resolution. Provides both blocking and async APIs.",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for mmc5983ma." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the MMC5983MA driver." },
+            { n:"src/", t:"d", d:"MMC5983MA driver source files.",
+              c:[
+                { n:"async.rs",     t:"f", d:"Async implementation using embedded-hal-async traits." },
+                { n:"config.rs",    t:"f", d:"Configuration types: output data rate, decimation filter, and measurement bandwidth settings." },
+                { n:"float.rs",     t:"f", d:"Converts raw 18-bit ADC counts to microtesla values using floating-point arithmetic." },
+                { n:"interface.rs", t:"f", d:"Hardware interface abstraction for SPI and I2C." },
+                { n:"lib.rs",       t:"f", d:"Public driver API and module re-exports." },
+                { n:"registers.rs", t:"f", d:"MMC5983MA register map and bitfield definitions." },
+                { n:"sync.rs",      t:"f", d:"Blocking implementation using embedded-hal traits." },
+              ]
+            },
+          ]
+        },
+        { n:"ms5607-rs/", t:"d", d:"no_std driver for the MS5607 barometric pressure and temperature sensor. Provides both blocking and async APIs.",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for ms5607-rs." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the MS5607 driver." },
+            { n:"src/", t:"d", d:"MS5607 driver source files.",
+              c:[
+                { n:"async_impl.rs",    t:"f", d:"Async implementation using embedded-hal-async traits." },
+                { n:"blocking_impl.rs", t:"f", d:"Blocking implementation using embedded-hal traits." },
+                { n:"details.rs",       t:"f", d:"Reads PROM calibration coefficients and applies the MS5607 second-order temperature-compensation algorithm to convert raw ADC values to pressure (Pa) and temperature (degrees C)." },
+                { n:"interface.rs",     t:"f", d:"Hardware interface abstraction for SPI and I2C." },
+                { n:"lib.rs",           t:"f", d:"Public driver API and module re-exports." },
+              ]
+            },
+          ]
+        },
+      ]
+    },
+    { n:"firmware/", t:"d", d:"The ap-udp-demo firmware binary crate — the main firmware that runs on Kiwi (RP2350B). Ties all Embassy tasks together: sensor acquisition, Wi-Fi, USB, and hardware watchdog.",
+      c:[
+        { n:"Cargo.toml", t:"f", d:"Firmware crate manifest. Declares Embassy framework dependencies and sensor feature flags (bme680, bmi323, bmp390, mmc5983ma, ms5607, sensors-all) that control which sensor drivers are compiled in." },
+        { n:"build.rs",   t:"f", d:"Cargo build script. Copies memory.x.template into the linker search path and sets the -Tlink.x and -Tdefmt.x linker flags required for Cortex-M bare-metal builds." },
+        { n:"src/", t:"d", d:"Firmware source files.",
+          c:[
+            { n:"main.rs",         t:"f", d:"Entry point. Initialises clocks, the Embassy executor, and DMA; then claims peripherals and spawns all async tasks: sensor tasks, Wi-Fi, USB, and the hardware watchdog." },
+            { n:"lib.rs",          t:"f", d:"Shared types and measurement structs (e.g. SensorData) used across tasks. Also re-exports common dependencies to keep individual task files concise." },
+            { n:"resources.rs",    t:"f", d:"Peripheral resource declarations. Uses embassy-rp macros to distribute I2C, SPI, USB, Wi-Fi, and watchdog peripherals to the correct tasks, preventing accidental sharing." },
+            { n:"sensor_tasks.rs", t:"f", d:"Async Embassy tasks, one per sensor subsystem. Each task independently drives its sensor over the shared I2C bus and publishes measurements to a channel consumed by the Wi-Fi and USB tasks." },
+            { n:"usb.rs",          t:"f", d:"USB task. Handles USB enumeration, exposes a HID/CDC interface, and relays configuration and data-rate control commands from the host to the sensor tasks." },
+            { n:"wifi.rs",         t:"f", d:"Wi-Fi task. Initialises the CYW43439 chip, brings up a WPA2/open access point named kiwi-ap, and streams sensor measurements over UDP using embassy-net." },
+          ]
+        },
+      ]
+    },
+    { n:"rules/", t:"d", d:"Linux udev rules. Installed by setup.sh (or manually) so the debug probe and Kiwi board are accessible to the current user without root privileges.",
+      c:[
+        { n:"99-kiwi.rules",  t:"f", d:"udev rule that grants the logged-in user read/write access to the Kiwi USB device (RP2350B in BOOTSEL or runtime mode) by matching its USB vendor/product ID." },
+        { n:"99-pico-probe.rules", t:"f", d:"udev rule that grants the logged-in user read/write access to the Raspberry Pi Debug Probe by matching its USB vendor/product ID." },
+      ]
+    },
+  ];
+
+  /* ── SVG templates ─────────────────────────────────────────────── */
+  var SVG_DIR  = '<svg class="repo-svg-icon repo-svg-icon--dir" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1z"/></svg>';
+  var SVG_FILE = '<svg class="repo-svg-icon repo-svg-icon--file" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5zm6.75.062V4.25c0 .138.112.25.25.25h2.688z"/></svg>';
+
+  /* ── Refs ──────────────────────────────────────────────────────── */
+  var panel  = document.getElementById("repoInfo");
+  var treeEl = document.getElementById("repoTree");
+  var active = null;
+
+  /* ── Helpers ───────────────────────────────────────────────────── */
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function setActive(btn) {
+    if (active) active.classList.remove("repo-node--active");
+    active = btn;
+    btn.classList.add("repo-node--active");
+  }
+
+  function showInfo(node, isDir) {
+    panel.innerHTML =
+      '<p class="repo-info__name">' +
+        (isDir ? SVG_DIR : SVG_FILE) + " " + esc(node.n) +
+        '<span class="repo-info__badge repo-info__badge--' + (isDir ? "dir" : "file") + '">' +
+          (isDir ? "directory" : "file") +
+        "</span>" +
+      "</p>" +
+      '<p class="repo-info__desc">' + esc(node.d) + "</p>";
+  }
+
+  /* ── Recursive builder ─────────────────────────────────────────── */
+  function build(items, parentUl) {
+    items.forEach(function (node) {
+      var isDir = node.t === "d";
+      var li    = document.createElement("li");
+      var btn   = document.createElement("button");
+      btn.type      = "button";
+      btn.className = "repo-node" + (isDir ? " repo-node--dir" : "");
+
+      /* icon */
+      btn.insertAdjacentHTML("beforeend", isDir ? SVG_DIR : SVG_FILE);
+
+      /* chevron — visible for dirs, invisible spacer for files */
+      var chev = document.createElement("span");
+      chev.className = "repo-chevron";
+      chev.setAttribute("aria-hidden", "true");
+      if (isDir) chev.textContent = "\u25B6"; /* ▶ */
+      btn.appendChild(chev);
+
+      /* label */
+      var label = document.createElement("span");
+      label.textContent = node.n;
+      btn.appendChild(label);
+
+      li.appendChild(btn);
+
+      if (isDir && node.c && node.c.length) {
+        var wrap = document.createElement("div");
+        wrap.className = "repo-children";
+        var ul = document.createElement("ul");
+        build(node.c, ul);
+        wrap.appendChild(ul);
+        li.appendChild(wrap);
+        btn.setAttribute("aria-expanded", "false");
+
+        btn.addEventListener("click", function () {
+          var open = btn.classList.contains("repo-node--open");
+          btn.classList.toggle("repo-node--open", !open);
+          wrap.classList.toggle("repo-children--open", !open);
+          btn.setAttribute("aria-expanded", String(!open));
+          setActive(btn);
+          showInfo(node, true);
+        });
+      } else {
+        btn.addEventListener("click", function () {
+          setActive(btn);
+          showInfo(node, isDir);
+        });
+      }
+
+      parentUl.appendChild(li);
+    });
+  }
+
+  build(T, treeEl);
+})();
+</script>
+
+<section class="manual-sheet" id="flowchart">
+
+  <h1 id="firmware-architecture">Firmware Architecture</h1>
+
+  <p style="font-size:0.9rem;color:var(--text-muted,#64748b);margin:0.25rem 0 0">
+  Interactive task-graph of the Kiwi firmware.
+  <strong>Click any node</strong> to open its detail view;
+  <strong>drag</strong> to rearrange; <strong>scroll to zoom</strong>.
+  Nodes with a chevron open a full-screen flow diagram.
+  Press <kbd>Esc</kbd> to close any overlay.
+</p>
+
+  <div id="fw">
+  <div id="fw-header">
+  <h1>Kiwi Firmware — Interactive Flowchart</h1>
+  <span>RP2350 · Embassy · Dual-core</span>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>Core 0 task</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Core 1 task</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#059669"></div>Sensor task</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0891b2"></div>Channel / data flow</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Hardware / peripheral</div>
+  </div>
+  <div class="controls">
+    <button id="btn-back" onclick="exitFocus()" style="display:none;background:#1e1040;border-color:#7c3aed;color:#c4b5fd">← Back to Overview</button>
+    <button onclick="resetView()">Reset View</button>
+    <button onclick="zoomIn()">＋</button>
+    <button onclick="zoomOut()">－</button>
+  </div>
+</div>
+
+<div id="canvas-wrap">
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#4f8ef7" opacity="0.7" />
+      </marker>
+      <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#059669" opacity="0.7" />
+      </marker>
+      <marker id="arr-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#7c3aed" opacity="0.7" />
+      </marker>
+      <marker id="arr-cyan" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#0891b2" opacity="0.7" />
+      </marker>
+      <marker id="arr-amber" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#d97706" opacity="0.7" />
+      </marker>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+        <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+    </defs>
+    <g id="world">
+      <!-- all content rendered by JS -->
+    </g>
+  </svg>
+</div>
+
+<div id="detail">
+  <button id="detail-close" onclick="closeDetail()">✕</button>
+  <h3 id="d-title"></h3>
+  <div class="badge" id="d-badge"></div>
+  <p id="d-desc"></p>
+  <div id="d-extra"></div>
+</div>
+
+<div id="minimap">
+  <svg id="mm-svg" xmlns="http://www.w3.org/2000/svg">
+    <g id="mm-world"></g>
+    <rect id="mm-view" fill="none" stroke="#4f8ef7" stroke-width="1" rx="2" />
+  </svg>
+</div>
+
+<div id="task-detail">
+  <div id="task-detail-header">
+    <div class="badge" id="task-detail-badge"></div>
+    <span id="task-detail-title"></span>
+    <span id="task-detail-sub"></span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button onclick="dgZoomIn()" style="background:#22263a;border:1px solid #2e3352;color:#e2e8f0;border-radius:6px;padding:4px 10px;cursor:pointer">＋</button>
+      <button onclick="dgZoomOut()" style="background:#22263a;border:1px solid #2e3352;color:#e2e8f0;border-radius:6px;padding:4px 10px;cursor:pointer">－</button>
+      <button onclick="dgResetView()" style="background:#22263a;border:1px solid #2e3352;color:#e2e8f0;border-radius:6px;padding:4px 10px;cursor:pointer">Reset</button>
+      <button id="task-detail-close" onclick="closeDetailGraph()" style="background:#22263a;border:1px solid #2e3352;color:#e2e8f0;border-radius:6px;padding:4px 14px;cursor:pointer">&#x2715; Close Detail View</button>
+    </div>
+  </div>
+  <div id="task-detail-body">
+    <svg id="task-detail-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="dg-arr" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#059669" opacity="0.9" /></marker>
+        <marker id="dg-arr-cyan" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#0891b2" opacity="0.9" /></marker>
+        <marker id="dg-arr-amber" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#d97706" opacity="0.9" /></marker>
+        <marker id="dg-arr-gray" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#64748b" opacity="0.9" /></marker>
+        <marker id="dg-arr-blue" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#4f8ef7" opacity="0.9" /></marker>
+        <marker id="dg-arr-purple" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#7c3aed" opacity="0.9" /></marker>
+        <marker id="dg-arr-red" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#dc2626" opacity="0.9" /></marker>
+      </defs>
+      <g id="task-detail-world"></g>
+    </svg>
+  </div>
+</div>
+</div>
+
+</section>
+
+<style>
+#fw {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3352;
+      --accent: #4f8ef7;
+      --accent2: #7c3aed;
+      --accent3: #059669;
+      --accent4: #d97706;
+      --accent5: #dc2626;
+      --accent6: #0891b2;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --node-radius: 10px;
+      --arrow: #4f8ef7;
+      /* Layout */
+  display: flex;
+  flex-direction: column;
+  height: 72vh;
+  min-height: 520px;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(79,142,247,0.22);
+  margin-top: 1.25rem;
+  position: relative;
+}
+    #fw * { box-sizing: border-box; }
+
+    #fw {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+    #fw-header {
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    #fw-header h1 { font-size: 1.1rem; font-weight: 600; }
+    #fw-header > span { font-size: 0.8rem; color: var(--muted); }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+      align-items: center;
+    }
+    .controls button {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .controls button:hover { background: var(--border); }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.72rem;
+      color: var(--muted);
+      align-items: center;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 3px;
+    }
+
+    #canvas-wrap {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      cursor: grab;
+      user-select: none;
+    }
+    #canvas-wrap.grabbing { cursor: grabbing; }
+
+    #fw svg, #task-detail-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Node styles */
+    .node { cursor: pointer; }
+    .node rect, .node ellipse, .node polygon {
+      stroke-width: 1.5;
+      transition: filter 0.15s;
+    }
+    .node:hover rect, .node:hover ellipse, .node:hover polygon {
+      filter: brightness(1.25);
+    }
+    .node text {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 11px;
+      fill: white;
+      dominant-baseline: middle;
+      text-anchor: middle;
+      pointer-events: none;
+      user-select: none;
+    }
+    .node text.sub {
+      font-size: 9px;
+      fill: rgba(255,255,255,0.6);
+    }
+
+    /* Edge arrows */
+    .edge path {
+      stroke-width: 1.5;
+      fill: none;
+    }
+    .edge text {
+      font-size: 9px;
+      fill: var(--muted);
+    }
+
+    /* Detail panel */
+    #detail {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 20;
+      display: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    #detail h3 { font-size: 0.95rem; margin-bottom: 6px; }
+    #detail .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    #detail p { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+    #detail ul { font-size: 0.78rem; color: var(--muted); padding-left: 16px; line-height: 1.7; }
+    #detail-close {
+      float: right;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .chip { display: inline-block; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1px 6px; font-size: 0.7rem; margin: 2px; color: var(--text); }
+
+    /* Mini-map */
+    #minimap {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      width: 160px;
+      height: 100px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 20;
+    }
+    #minimap svg { width: 100%; height: 100%; }
+
+    /* ─── Task detail graph overlay ─── */
+    #task-detail {
+      position: fixed; inset: 0; background: rgba(5,7,15,0.93); z-index: 100;
+      display: none; flex-direction: column;
+    }
+    #task-detail.active { display: flex; }
+    #task-detail-header {
+      background: #1a1d27; border-bottom: 1px solid #2e3352;
+      padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    #task-detail-title { font-size: 0.95rem; font-weight: 700; color: #e2e8f0; }
+    #task-detail-sub { font-size: 0.75rem; color: #64748b; margin-left: 4px; }
+    #task-detail-close {
+      margin-left: auto; background: #22263a; border: 1px solid #2e3352;
+      color: #e2e8f0; border-radius: 6px; padding: 4px 14px; cursor: pointer; font-size: 0.82rem;
+    }
+    #task-detail-close:hover { background: #2e3352; }
+    #task-detail-body { flex: 1; overflow: hidden; cursor: grab; user-select: none; }
+    #task-detail-body.grabbing { cursor: grabbing; }
+    #task-detail-svg { width: 100%; height: 100%; display: block; }
+    .dg-ext-label { font-size: 0.58rem; fill: rgba(255,255,255,0.4); letter-spacing: 0.08em; font-weight: 700; }
+
+    /* ─── Task-detail overlay — per-theme colour variants ───────────────────── */
+    :root[data-theme="deuteranopia"] #task-detail              { background: rgba(2,5,20,0.95); }
+    :root[data-theme="deuteranopia"] #task-detail-header       { background: #162032; border-bottom-color: #2a3d5e; }
+    :root[data-theme="deuteranopia"] #task-detail-title        { color: #e8edf5; }
+    :root[data-theme="deuteranopia"] #task-detail-sub          { color: #7a8ca0; }
+    :root[data-theme="deuteranopia"] #task-detail-close        { background: #1e2d46; border-color: #2a3d5e; color: #e8edf5; }
+    :root[data-theme="deuteranopia"] #task-detail-close:hover  { background: #2a3d5e; }
+    :root[data-theme="deuteranopia"] #task-detail-header button { background: #1e2d46 !important; border-color: #2a3d5e !important; color: #e8edf5 !important; }
+    :root[data-theme="deuteranopia"] #task-detail-header button:hover { background: #2a3d5e !important; }
+
+    :root[data-theme="high-contrast"] #task-detail             { background: rgba(0,0,0,0.98); }
+    :root[data-theme="high-contrast"] #task-detail-header      { background: #0d0d0d; border-bottom-color: #58a6ff; }
+    :root[data-theme="high-contrast"] #task-detail-title       { color: #ffffff; }
+    :root[data-theme="high-contrast"] #task-detail-sub         { color: #b0b0b0; }
+    :root[data-theme="high-contrast"] #task-detail-close       { background: #161616; border-color: #58a6ff; color: #ffffff; }
+    :root[data-theme="high-contrast"] #task-detail-close:hover { background: #222222; }
+    :root[data-theme="high-contrast"] #task-detail-header button { background: #161616 !important; border-color: #58a6ff !important; color: #ffffff !important; }
+    :root[data-theme="high-contrast"] #task-detail-header button:hover { background: #222222 !important; }
+
+    :root[data-theme="monochrome"] #task-detail                { background: rgba(8,8,8,0.97); }
+    :root[data-theme="monochrome"] #task-detail-header         { background: #1a1a1a; border-bottom-color: #3a3a3a; }
+    :root[data-theme="monochrome"] #task-detail-title          { color: #e0e0e0; }
+    :root[data-theme="monochrome"] #task-detail-sub            { color: #808080; }
+    :root[data-theme="monochrome"] #task-detail-close          { background: #242424; border-color: #3a3a3a; color: #e0e0e0; }
+    :root[data-theme="monochrome"] #task-detail-close:hover    { background: #2e2e2e; }
+    :root[data-theme="monochrome"] #task-detail-header button  { background: #242424 !important; border-color: #3a3a3a !important; color: #e0e0e0 !important; }
+    :root[data-theme="monochrome"] #task-detail-header button:hover { background: #2e2e2e !important; }
+
+    /* ─── #fw border per-theme ──────────────────────────────────────────────── */
+    :root[data-theme="high-contrast"] #fw { border-color: rgba(96,208,255,0.40); }
+    :root[data-theme="monochrome"]    #fw { border-color: rgba(160,160,160,0.22); }
+</style>
+
+<script>
+// ─── Graph Data ──────────────────────────────────────────────────────────────
+const NODES = [
+  // ── Boot / init (collapsed) ──
+  { id: 'boot_init', x: 560, y: 180, w: 220, h: 52, shape: 'rect', color: '#1a2340', stroke: '#4f8ef7', label: 'Boot / Init', sub: 'ROM → peripherals → watchdog → channels', core: 0,
+    title: 'Boot / Initialisation Sequence', badge: 'BOOT', badgeColor: '#1e3a5f',
+    desc: 'Full startup sequence: boot ROM hands off to Embassy, peripherals are initialised, the hardware watchdog is configured, static channels are allocated, then tasks are spawned across both cores.',
+    steps: [
+      '1. RP2350 boot ROM: copy flash → SRAM, 12 MHz XOSC → 125 MHz PLL',
+      '2. embassy_rp::init() → Peripherals + split_resources!() → typed groups',
+      '3. create_watchdog!(WATCHDOG, 5s timeout / 2s window)',
+      '4. StaticCell DATA_CHANNEL (cap 32), DR_REQUEST_CHANNEL (cap 1), DR_REPLY_CHANNEL (cap 1)',
+      '5. spawner.spawn(spawn_sensor_task) — Core 0 I2C sensors',
+      '6. spawner.spawn(core1_task) — launches Core 1 executor',
+      '7. spawner.spawn(usb_task) — USB CDC-ACM',
+      '8. spawner.must_spawn(watchdog_task) — hardware watchdog runner',
+    ],
+    extra: [],
+    detail_graph: {
+      title: 'Boot / Init — Internal Execution Flow',
+      sections: [
+        {label:'INIT',     x1: 60, y1:  48, x2:545, y2:380, color:'rgba(79,142,247,0.05)',  stroke:'rgba(79,142,247,0.25)'},
+        {label:'SPAWN',    x1: 60, y1: 388, x2:640, y2:548, color:'rgba(5,150,105,0.04)',   stroke:'rgba(5,150,105,0.2)'},
+        {label:'EXTERNAL', x1:555, y1: 100, x2:820, y2:380, color:'rgba(217,119,6,0.04)',   stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        // Init sequence
+        {id:'dg_boot',  cx:300, cy: 88, w:290, h:40, label:'Power-on / Boot ROM',      sub:'copy flash→SRAM · XOSC 12 MHz → PLL 125 MHz · vector table',    color:'#0d1a2e', stroke:'#4f8ef7'},
+        {id:'dg_init',  cx:300, cy:168, w:290, h:44, label:'embassy_rp::init()',        sub:'Peripherals + Clocks; split_resources!() → UsbConf/I2cDev/WifiPins', color:'#1e3a5f', stroke:'#4f8ef7'},
+        {id:'dg_wdog',  cx:300, cy:252, w:290, h:40, label:'create_watchdog!()',        sub:'Duration::from_secs(5) timeout · 2 s window',                     color:'#1a2340', stroke:'#4f8ef7'},
+        {id:'dg_ch',    cx:300, cy:336, w:290, h:44, label:'StaticCell channels ×3',   sub:'DATA (cap 32) · DR_REQUEST (cap 1) · DR_REPLY (cap 1)',           color:'#0c2233', stroke:'#0891b2'},
+        // Spawner hub
+        {id:'dg_fan',   cx:300, cy:420, w:100, h:32, label:'\u2193 spawn tasks', color:'#0d1a2e', stroke:'#4f8ef7', shape:'stadium'},
+        // Spawned tasks
+        {id:'dg_ss',    cx: 95, cy:508, w:158, h:36, label:'spawn_sensor_task()', sub:'Core 0 · async I2C', color:'#0a2418', stroke:'#059669'},
+        {id:'dg_c1',    cx:270, cy:508, w:130, h:36, label:'spawn_core1()',        sub:'Core 1 executor',  color:'#1a0d2e', stroke:'#7c3aed'},
+        {id:'dg_usb',   cx:415, cy:508, w:128, h:36, label:'usb_task()',           sub:'USB CDC-ACM',      color:'#1a110a', stroke:'#d97706'},
+        {id:'dg_wdt',   cx:568, cy:508, w:130, h:36, label:'watchdog_task()',      sub:'must_spawn',       color:'#1a1a1a', stroke:'#64748b'},
+        // External hardware
+        {id:'dg_ext_wdog', cx:692, cy:252, w:155, h:36, label:'RP2350 WATCHDOG', sub:'hardware watchdog peripheral', color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'dg_ext_ch_m', cx:692, cy:336, w:155, h:36, label:'MeasurementChannel', sub:'cap 32 · CriticalSectionRawMutex', color:'#0c2233', stroke:'#0891b2', ext:true},
+      ],
+      edges: [
+        {from:'dg_boot', to:'dg_init',     color:'#4f8ef7'},
+        {from:'dg_init', to:'dg_wdog',     color:'#4f8ef7'},
+        {from:'dg_wdog', to:'dg_ch',       color:'#4f8ef7'},
+        {from:'dg_ch',   to:'dg_fan',      color:'#4f8ef7'},
+        {from:'dg_fan',  to:'dg_ss',       color:'#059669', label:'spawner'},
+        {from:'dg_fan',  to:'dg_c1',       color:'#7c3aed', label:'spawner'},
+        {from:'dg_fan',  to:'dg_usb',      color:'#d97706', label:'spawner'},
+        {from:'dg_fan',  to:'dg_wdt',      color:'#64748b', label:'must_spawn'},
+        {from:'dg_wdog', to:'dg_ext_wdog', color:'#d97706', label:'wraps HW periph'},
+        {from:'dg_ch',   to:'dg_ext_ch_m', color:'#0891b2', label:'sender → tasks'},
+      ]
+    } },
+
+  // ── Sensor path ──
+  { id: 'spawn_sensor', x: 130, y: 410, w: 170, h: 40, shape: 'rect', color: '#0a2418', stroke: '#059669', label: 'spawn_sensor_task()', sub: 'Core 0 Spawner', core: 0,
+    title: 'spawn_sensor_task()', badge: 'CORE 0', badgeColor: '#0a2418',
+    desc: 'Creates the shared async I2C bus and conditionally spawns one Embassy task per enabled sensor feature flag.',
+    steps: [
+      '1. I2c::new_async(I2C0, SCL=PIN_5, SDA=PIN_4, I2cIrqHandler, Config::default())',
+      '2. Mutex::<NoopRawMutex, _>::new(i2c) stored in StaticCell<I2C_BUS>',
+      '3. [sensor-mag]  → I2cDevice::new(bus), Input::new(mmcirq, Pull::None) → spawn magnetometer_task',
+      '4. [sensor-imu]  → I2cDevice::new(bus), Input::new(imuirq, Pull::None) → spawn imu_task',
+      '5. [sensor-baro] → I2cDevice::new(bus), Input::new(baroirq, Pull::None) → spawn baro_task',
+      '6. [sensor-humi] → I2cDevice::new(bus) → spawn humi_gas_task',
+    ],
+    extra: [],
+    detail_graph: {
+      title: 'spawn_sensor_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT',     x1:60, y1: 48, x2:520, y2:200, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'SPAWN',    x1:60, y1:212, x2:520, y2:384, color:'rgba(5,150,105,0.04)',   stroke:'rgba(5,150,105,0.2)'},
+        {label:'EXTERNAL', x1:532,y1: 48, x2:742, y2:384, color:'rgba(217,119,6,0.04)',   stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'ss_i2c',  cx:290, cy: 88, w:322, h:40, label:'I2c::new_async(I2C0, SCL=PIN_5, SDA=PIN_4)', sub:'NoopRawMutex shared bus \u00b7 Async DMA \u00b7 Config::default()',         color:'#0a2418', stroke:'#059669'},
+        {id:'ss_bus',  cx:290, cy:160, w:322, h:36, label:'StaticCell<Mutex<I2cBus>>::init()',           sub:'shared bus \u2014 each sensor gets its own I2cDevice::new(bus)',          color:'#0a2418', stroke:'#059669'},
+        {id:'ss_mag',  cx:145, cy:268, w:190, h:36, label:'spawn magnetometer_task',  sub:'#[cfg(sensor-mag)] \u00b7 I2cDevice \u00b7 irq=PIN_32', color:'#0a2418', stroke:'#059669'},
+        {id:'ss_imu',  cx:355, cy:268, w:180, h:36, label:'spawn imu_task',           sub:'#[cfg(sensor-imu)] \u00b7 I2cDevice \u00b7 irq=PIN_31', color:'#0a2418', stroke:'#059669'},
+        {id:'ss_baro', cx:145, cy:344, w:190, h:36, label:'spawn baro_task',          sub:'#[cfg(sensor-baro)] \u00b7 I2cDevice \u00b7 irq=PIN_33',color:'#0a2418', stroke:'#059669'},
+        {id:'ss_humi', cx:355, cy:344, w:180, h:36, label:'spawn humi_gas_task',      sub:'#[cfg(sensor-humi)] \u00b7 I2cDevice',                  color:'#0a2418', stroke:'#059669'},
+        {id:'ss_ext_i2c', cx:637, cy: 88, w:168, h:36, label:'I2C0 Peripheral', sub:'PIN_4 SDA \u00b7 PIN_5 SCL \u00b7 Async DMA',      color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'ss_ext_ch',  cx:637, cy:306, w:168, h:36, label:'MeasurementChannel', sub:'sender cloned into each spawned task', color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+      ],
+      edges: [
+        {from:'ss_i2c',  to:'ss_bus',       color:'#059669'},
+        {from:'ss_bus',  to:'ss_mag',       color:'#059669', label:'I2cDevice'},
+        {from:'ss_bus',  to:'ss_imu',       color:'#059669', label:'I2cDevice'},
+        {from:'ss_bus',  to:'ss_baro',      color:'#059669', label:'I2cDevice'},
+        {from:'ss_bus',  to:'ss_humi',      color:'#059669', label:'I2cDevice'},
+        {from:'ss_ext_i2c', to:'ss_i2c',   color:'#d97706'},
+        {from:'ss_mag',  to:'ss_ext_ch',    color:'#0891b2'},
+        {from:'ss_imu',  to:'ss_ext_ch',    color:'#0891b2'},
+        {from:'ss_baro', to:'ss_ext_ch',    color:'#0891b2'},
+        {from:'ss_humi', to:'ss_ext_ch',    color:'#0891b2'},
+      ]
+    } },
+
+  { id: 'mag_task', x: 20, y: 520, w: 115, h: 36, shape: 'rect', color: '#0a2418', stroke: '#059669', label: 'magnetometer_task', sub: 'MMC5983MA · #[cfg sensor-mag]', core: 0,
+    title: 'magnetometer_task — MMC5983MA', badge: 'SENSOR', badgeColor: '#0a2418',
+    desc: 'Interrupt-driven continuous magnetometer. Watchdog timeout: 5 s.',
+    steps: [
+      '1. Mmc5983Async::new_with_i2c(i2c, addr=0x30, Mmc5983ConfigBuilder{Hz10, Per500}, Delay)',
+      '2. mmc.init().await — configure continuous measurement mode @ 10 Hz',
+      '3. mmc.remove_offset().await — SET/RESET sequence cancels residual offset',
+      '4. mmc.temperature().await — initial temperature sanity check',
+      '5. mmc.measure().await — first measurement to verify sensor is alive',
+      '6. mmc.start(|mmc| loop {',
+      '     watchdog.feed().await',
+      '     irq.wait_for_any_edge().await  ← IRQ on PIN_32',
+      '     mmc.measure().await → Mag{x, y, z}',
+      '     if !sender.is_full() → sender.send(Mag(x_mG, y_mG, z_mG)).await',
+      '   })',
+    ],
+    extra: ['Driver: mmc5983ma-rs', 'Frequency: 10 Hz continuous', 'Periodic SET interval: every 500 samples', 'IRQ: PIN_32', 'Sends: CommonMeasurement::Mag(x, y, z) in milligauss'],
+    detail_graph: {
+      title: 'magnetometer_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT', x1: 60, y1: 48, x2:620, y2:330, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'LOOP', x1: 60, y1:338, x2:620, y2:688, color:'rgba(5,150,105,0.04)',   stroke:'rgba(5,150,105,0.2)'},
+        {label:'EXTERNAL', x1:630, y1: 48, x2:830, y2:460, color:'rgba(217,119,6,0.04)', stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        // Init sequence
+        {id:'mg_new',    cx:320, cy: 88, w:300, h:40, label:'Mmc5983Async::new_with_i2c()',  sub:'addr=0x30, Hz10, Per500, Delay',                  color:'#0a2418', stroke:'#059669'},
+        {id:'mg_init',   cx:320, cy:160, w:300, h:40, label:'mmc.init().await',               sub:'continuous mode @ 10 Hz',                         color:'#0a2418', stroke:'#059669'},
+        {id:'mg_offset', cx:320, cy:232, w:300, h:40, label:'mmc.remove_offset().await',      sub:'SET/RESET sequence — cancel residual bridge offset', color:'#0a2418', stroke:'#059669'},
+        {id:'mg_temp',   cx:320, cy:304, w:300, h:40, label:'mmc.temperature().await',        sub:'sanity check — initial temperature read',          color:'#0a2418', stroke:'#059669'},
+        // Loop
+        {id:'mg_loop',   cx:320, cy:378, w:120, h:32, label:'\u21ba  loop',                   color:'#122518', stroke:'#059669', shape:'stadium'},
+        {id:'mg_feed',   cx:320, cy:432, w:300, h:36, label:'watchdog.feed().await',           color:'#1a1a1a', stroke:'#64748b'},
+        {id:'mg_irq',    cx:320, cy:490, w:300, h:36, label:'irq.wait_for_any_edge().await',  sub:'PIN_32 \u2014 MMC5983 DRDY / INT',                color:'#0a2418', stroke:'#059669'},
+        {id:'mg_meas',   cx:320, cy:554, w:300, h:44, label:'mmc.measure().await',            sub:'\u2192 Mag { x, y, z } in milligauss',            color:'#0a2418', stroke:'#059669'},
+        {id:'mg_check',  cx:320, cy:624, w:280, h:36, label:'if !sender.is_full()',            color:'#0c2233', stroke:'#0891b2'},
+        {id:'mg_send',   cx:320, cy:688, w:280, h:36, label:'sender.send(Mag(x,y,z)).await',  sub:'CommonMeasurement::Mag in milligauss',             color:'#0c2233', stroke:'#0891b2'},
+        // External hardware
+        {id:'mg_ext_i2c',cx:712, cy:160, w:155, h:36, label:'I2C0 Bus',    sub:'PIN_4/PIN_5 \u00b7 Async DMA', color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'mg_ext_wd', cx:712, cy:432, w:155, h:36, label:'Watchdog',    sub:'5 s timeout',                  color:'#1a1a1a', stroke:'#64748b', ext:true},
+        {id:'mg_ext_pin',cx:712, cy:490, w:155, h:36, label:'MMC5983 INT', sub:'GPIO PIN_32, any edge',        color:'#1a110a', stroke:'#d97706', ext:true},
+        // External channel
+        {id:'mg_ext_ch', cx:320, cy:770, w:220, h:36, label:'MeasurementChannel', sub:'cap 32 \u00b7 CriticalSectionRawMutex', color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+      ],
+      edges: [
+        {from:'mg_new',    to:'mg_init',    color:'#059669'},
+        {from:'mg_init',   to:'mg_offset',  color:'#059669'},
+        {from:'mg_offset', to:'mg_temp',    color:'#059669'},
+        {from:'mg_temp',   to:'mg_loop',    color:'#059669'},
+        {from:'mg_loop',   to:'mg_feed',    color:'#059669'},
+        {from:'mg_feed',   to:'mg_irq',     color:'#059669'},
+        {from:'mg_irq',    to:'mg_meas',    color:'#059669'},
+        {from:'mg_meas',   to:'mg_check',   color:'#059669'},
+        {from:'mg_check',  to:'mg_send',    color:'#0891b2', label:'not full'},
+        {from:'mg_send',   to:'mg_ext_ch',  color:'#0891b2', label:'Mag(x,y,z)'},
+        {from:'mg_ext_ch', to:'mg_loop',    color:'#059669', label:'\u21ba next iteration', loopback:true},
+        // External hardware
+        {from:'mg_new',    to:'mg_ext_i2c', color:'#d97706', label:'I2cDevice::new(bus)'},
+        {from:'mg_meas',   to:'mg_ext_i2c', color:'#d97706', label:'I2C burst read'},
+        {from:'mg_feed',   to:'mg_ext_wd',  color:'#64748b', label:'token'},
+        {from:'mg_irq',    to:'mg_ext_pin', color:'#d97706', label:'any edge'},
+      ]
+    } },
+
+  { id: 'imu_task', x: 145, y: 520, w: 115, h: 36, shape: 'rect', color: '#0a2418', stroke: '#059669', label: 'imu_task', sub: 'BMI323 · #[cfg sensor-imu]', core: 0,
+    title: 'imu_task — BMI323', badge: 'SENSOR', badgeColor: '#0a2418',
+    desc: 'High-performance IMU with self-calibration. Accel + Gyro interrupt-driven. Watchdog timeout: 1 s.',
+    steps: [
+      '1. Bmi323Async::new_with_i2c(i2c, addr=0x68, Bmi323Config {',
+      '     AccelMode::HighPerformance, GyroMode::HighPerformance',
+      '     GyroRange::Auto, accel_odr / gyro_odr from feature flags (default 50 Hz)',
+      '     IrqMap::Int2 for accel+gyro+temp, hysteresis=500 ms }, Delay)',
+      '2. imu.init().await — configure all sensor modes and output data rates',
+      '3. imu.calibrate(SelfCalibrateType::Both).await — factory self-test + offset trim',
+      '4. imu.start(|imu| loop {',
+      '     watchdog.feed().await',
+      '     irq.wait_for_falling_edge().await  ← IRQ on PIN_31',
+      '     imu.measure().await → { accel?, gyro?, temp? }',
+      '     compute magnitude |a|, polar angles θ/φ',
+      '     if !sender.is_full():',
+      '       sender.send(Accel(ax,ay,az)).await',
+      '       sender.send(Gyro(gx,gy,gz)).await',
+      '   })',
+    ],
+    extra: ['Driver: bmi323-rs', 'Accel+Gyro ODR: 0.78–1600 Hz (feature flags)', 'IRQ: PIN_31 falling edge', 'Sends: CommonMeasurement::Accel(g) + Gyro(dps)'],
+    detail_graph: {
+      title: 'imu_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT',    x1: 70, y1:  48, x2:650, y2:260, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'LOOP',    x1: 70, y1: 270, x2:650, y2:755, color:'rgba(5,150,105,0.04)',   stroke:'rgba(5,150,105,0.2)'},
+        {label:'EXTERNAL',x1:660, y1:  48, x2:820, y2:460, color:'rgba(217,119,6,0.04)',   stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        // Init sequence
+        {id:'dg_new',     cx:340, cy: 80, w:300, h:40, label:'Bmi323Async::new_with_i2c()',         sub:'addr=0x68, Hz50, IrqMap::Int2, hysteresis=500ms, Delay', color:'#0a2418', stroke:'#059669'},
+        {id:'dg_init',    cx:340, cy:152, w:300, h:40, label:'imu.init().await',                    sub:'configure HighPerformance accel+gyro, ODR via feature flags', color:'#0a2418', stroke:'#059669'},
+        {id:'dg_calib',   cx:340, cy:224, w:300, h:40, label:'imu.calibrate(Both).await',           sub:'factory self-test + offset trim for accel & gyro', color:'#0a2418', stroke:'#059669'},
+        // Loop
+        {id:'dg_loop',    cx:340, cy:296, w:120, h:32, label:'\u21ba  loop',                        color:'#122518', stroke:'#059669', shape:'stadium'},
+        {id:'dg_feed',    cx:340, cy:358, w:300, h:36, label:'watchdog.feed().await',               color:'#1a1a1a', stroke:'#64748b'},
+        {id:'dg_irq',     cx:340, cy:422, w:300, h:36, label:'irq.wait_for_falling_edge().await',  sub:'PIN_31 \u2014 BMI323 INT2', color:'#0a2418', stroke:'#059669'},
+        {id:'dg_meas',    cx:340, cy:490, w:300, h:44, label:'imu.measure().await',                sub:'\u2192 { accel?: Some((ax,ay,az)), gyro?: Some((gx,gy,gz)), temp? }', color:'#0a2418', stroke:'#059669'},
+        // Branch
+        {id:'dg_accel',   cx:200, cy:575, w:185, h:40, label:'Process Accel',  sub:'|a|=\u221a(ax\u00b2+ay\u00b2+az\u00b2)  \u03b8=arccos(az/|a|)  \u03c6=atan2(ay,ax)', color:'#0a2418', stroke:'#059669'},
+        {id:'dg_gyro',    cx:480, cy:575, w:185, h:40, label:'Process Gyro',   sub:'gx, gy, gz  in deg/s', color:'#0a2418', stroke:'#059669'},
+        // Check + send
+        {id:'dg_check',   cx:340, cy:648, w:280, h:36, label:'if !sender.is_full()',               color:'#0c2233', stroke:'#0891b2'},
+        {id:'dg_senda',   cx:200, cy:720, w:185, h:36, label:'sender.send(Accel)', sub:'ax, ay, az  in g',   color:'#0c2233', stroke:'#0891b2'},
+        {id:'dg_sendg',   cx:480, cy:720, w:185, h:36, label:'sender.send(Gyro)',  sub:'gx, gy, gz  in dps', color:'#0c2233', stroke:'#0891b2'},
+        // External hardware
+        {id:'dg_ext_i2c', cx:716, cy:152, w:160, h:32, label:'I2C0 Bus',     sub:'PIN_4/PIN_5 \u00b7 Async DMA', color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'dg_ext_wd',  cx:716, cy:358, w:160, h:32, label:'Watchdog',     sub:'1 s timeout per iteration',    color:'#1a1a1a', stroke:'#64748b', ext:true},
+        {id:'dg_ext_pin', cx:716, cy:422, w:160, h:32, label:'BMI323 INT2',  sub:'GPIO PIN_31, falling edge',    color:'#1a110a', stroke:'#d97706', ext:true},
+        // External channel
+        {id:'dg_ext_ch',  cx:340, cy:808, w:220, h:36, label:'MeasurementChannel', sub:'cap 32 \u00b7 CriticalSectionRawMutex', color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+      ],
+      edges: [
+        // Init sequence
+        {from:'dg_new',    to:'dg_init',    color:'#059669'},
+        {from:'dg_init',   to:'dg_calib',   color:'#059669'},
+        {from:'dg_calib',  to:'dg_loop',    color:'#059669'},
+        // Loop body
+        {from:'dg_loop',   to:'dg_feed',    color:'#059669'},
+        {from:'dg_feed',   to:'dg_irq',     color:'#059669'},
+        {from:'dg_irq',    to:'dg_meas',    color:'#059669'},
+        {from:'dg_meas',   to:'dg_accel',   color:'#059669', label:'accel?'},
+        {from:'dg_meas',   to:'dg_gyro',    color:'#059669', label:'gyro?'},
+        {from:'dg_accel',  to:'dg_check',   color:'#059669'},
+        {from:'dg_gyro',   to:'dg_check',   color:'#059669'},
+        {from:'dg_check',  to:'dg_senda',   color:'#0891b2', label:'not full'},
+        {from:'dg_check',  to:'dg_sendg',   color:'#0891b2'},
+        // Send to channel
+        {from:'dg_senda',  to:'dg_ext_ch',  color:'#0891b2', label:'Accel(ax,ay,az)'},
+        {from:'dg_sendg',  to:'dg_ext_ch',  color:'#0891b2', label:'Gyro(gx,gy,gz)'},
+        // Loopback (U-shaped arc on left)
+        {from:'dg_ext_ch', to:'dg_loop',    color:'#059669', label:'\u21ba next iteration', loopback:true},
+        // External hardware connections
+        {from:'dg_new',    to:'dg_ext_i2c', color:'#d97706', label:'I2cDevice::new(bus)'},
+        {from:'dg_meas',   to:'dg_ext_i2c', color:'#d97706', label:'I2C burst read'},
+        {from:'dg_feed',   to:'dg_ext_wd',  color:'#64748b', label:'token'},
+        {from:'dg_irq',    to:'dg_ext_pin', color:'#d97706', label:'falling edge'},
+      ]
+    } },
+
+  { id: 'baro_task', x: 270, y: 520, w: 115, h: 36, shape: 'rect', color: '#0a2418', stroke: '#059669', label: 'baro_task', sub: 'MS5607 · #[cfg sensor-baro]', core: 0,
+    title: 'baro_task — MS5607', badge: 'SENSOR', badgeColor: '#0a2418',
+    desc: 'Polling barometric pressure sensor at 10 Hz. Computes altitude via NOAA formula. Watchdog timeout: 1 s.',
+    steps: [
+      '1. Ticker::every(Duration::from_millis(100)) — 10 Hz poll cadence',
+      '2. Ms5607::new_i2c(i2c, addr=0x77, Delay, Oversampling::Osr4096)',
+      '3. ms5607.init().await — reads 6 factory calibration coefficients from PROM',
+      '4. loop {',
+      '     watchdog.feed().await',
+      '     ms5607.read().await → { temperature: Pressure, pressure: Temperature }',
+      '     altitude = 145366.45 × (1 − (P / 1013.25 hPa)^0.190284) ft',
+      '     if !sender.is_full():',
+      '       sender.send(Baro(temp_°C, pressure_hPa, altitude_ft)).await',
+      '     ticker.next().await',
+      '   }',
+    ],
+    extra: ['Driver: ms5607-rs', 'I2C: 0x77', 'OSR4096', 'Poll: 10 Hz', 'Sends: CommonMeasurement::Baro(T°C, P hPa, alt ft)'],
+    detail_graph: {
+      title: 'baro_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT', x1: 60, y1:  48, x2:600, y2:280, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'LOOP', x1: 60, y1: 288, x2:600, y2:680, color:'rgba(5,150,105,0.04)',   stroke:'rgba(5,150,105,0.2)'},
+        {label:'EXTERNAL', x1:612, y1: 48, x2:820, y2:420, color:'rgba(217,119,6,0.04)', stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        // Init
+        {id:'br_ticker', cx:300, cy: 88, w:310, h:40, label:'Ticker::every(100 ms)',          sub:'10 Hz poll cadence',                                 color:'#0a2418', stroke:'#059669'},
+        {id:'br_new',    cx:300, cy:160, w:310, h:40, label:'Ms5607::new_i2c()',               sub:'addr=0x77, Delay, Oversampling::Osr4096',             color:'#0a2418', stroke:'#059669'},
+        {id:'br_init',   cx:300, cy:232, w:310, h:40, label:'ms5607.init().await',             sub:'reads 6 factory PROM calibration coefficients',      color:'#0a2418', stroke:'#059669'},
+        // Loop
+        {id:'br_loop',   cx:300, cy:320, w:120, h:32, label:'↺  loop',                    color:'#122518', stroke:'#059669', shape:'stadium'},
+        {id:'br_feed',   cx:300, cy:374, w:310, h:36, label:'watchdog.feed().await',            color:'#1a1a1a', stroke:'#64748b'},
+        {id:'br_read',   cx:300, cy:432, w:310, h:44, label:'ms5607.read().await',             sub:'→ { temperature: f32, pressure: f32 }',              color:'#0a2418', stroke:'#059669'},
+        {id:'br_alt',    cx:300, cy:504, w:310, h:44, label:'altitude = NOAA formula',         sub:'145366.45 × (1 − (P/1013.25)°0.190284) ft', color:'#0a2418', stroke:'#059669'},
+        {id:'br_check',  cx:300, cy:576, w:280, h:36, label:'if !sender.is_full()',             color:'#0c2233', stroke:'#0891b2'},
+        {id:'br_send',   cx:300, cy:632, w:280, h:36, label:'sender.send(Baro(T,P,alt)).await', sub:'T°C, P hPa, alt ft',                             color:'#0c2233', stroke:'#0891b2'},
+        {id:'br_tick',   cx:300, cy:688, w:280, h:36, label:'ticker.next().await',              sub:'sleep until next 100 ms slot',                       color:'#0a2418', stroke:'#059669'},
+        // External
+        {id:'br_ext_i2c',cx:704, cy:160, w:155, h:36, label:'I2C0 Bus',   sub:'PIN_4/PIN_5 · Async DMA', color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'br_ext_wd', cx:704, cy:374, w:155, h:36, label:'Watchdog',   sub:'1 s timeout',                  color:'#1a1a1a', stroke:'#64748b', ext:true},
+        // Channel
+        {id:'br_ext_ch', cx:300, cy:770, w:220, h:36, label:'MeasurementChannel', sub:'cap 32 · CriticalSectionRawMutex', color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+      ],
+      edges: [
+        {from:'br_ticker', to:'br_new',   color:'#059669'},
+        {from:'br_new',    to:'br_init',  color:'#059669'},
+        {from:'br_init',   to:'br_loop',  color:'#059669'},
+        {from:'br_loop',   to:'br_feed',  color:'#059669'},
+        {from:'br_feed',   to:'br_read',  color:'#059669'},
+        {from:'br_read',   to:'br_alt',   color:'#059669'},
+        {from:'br_alt',    to:'br_check', color:'#059669'},
+        {from:'br_check',  to:'br_send',  color:'#0891b2', label:'not full'},
+        {from:'br_send',   to:'br_tick',  color:'#059669'},
+        {from:'br_tick',   to:'br_ext_ch',color:'#0891b2', label:'Baro(T,P,alt)'},
+        {from:'br_ext_ch', to:'br_loop',  color:'#059669', label:'↺ next iteration', loopback:true},
+        {from:'br_new',    to:'br_ext_i2c',color:'#d97706', label:'I2cDevice::new(bus)'},
+        {from:'br_read',   to:'br_ext_i2c',color:'#d97706', label:'I2C read'},
+        {from:'br_feed',   to:'br_ext_wd', color:'#64748b', label:'token'},
+      ]
+    } },
+
+  { id: 'humi_task', x: 395, y: 520, w: 115, h: 36, shape: 'rect', color: '#0a2418', stroke: '#059669', label: 'humi_gas_task', sub: 'BME680 · #[cfg sensor-humi]', core: 0,
+    title: 'humi_gas_task — BME680', badge: 'SENSOR', badgeColor: '#0a2418',
+    desc: 'Environmental sensor: temperature, humidity, gas resistance. Polled at 1 Hz. Watchdog timeout = measure_duration_ms + 1 s.',
+    steps: [
+      '1. Bme680::<_, Delay>::new(i2c, Bme680Address::AddrLow=0x76, Delay)',
+      '2. bme.init(Bme680Config::default()).await — configure oversampling, IIR filter, heater plate',
+      '3. Ticker::every(Duration::from_secs(1)) — 1 Hz cadence',
+      '4. loop {',
+      '     watchdog.feed().await',
+      '     bme.measure().await →',
+      '       Ok(m) → if !sender.is_full(): sender.send(Humi(temp_°C, humidity_%, gas_Ω)).await',
+      '       Err(MeasurementTimedOut) → log error, continue',
+      '       Err(InvalidChipId)       → log error, continue',
+      '       Err(I2c(_))              → log error, continue',
+      '     ticker.next().await',
+      '   }',
+    ],
+    extra: ['Driver: bme680-rs', 'I2C: 0x76 (AddrLow)', 'Poll: 1 Hz', 'Sends: CommonMeasurement::Humi(T°C, RH%, gas Ω)'],
+    detail_graph: {
+      title: 'humi_gas_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT', x1: 60, y1:  48, x2:600, y2:248, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'LOOP', x1: 60, y1: 256, x2:600, y2:700, color:'rgba(5,150,105,0.04)',   stroke:'rgba(5,150,105,0.2)'},
+        {label:'EXTERNAL', x1:612, y1: 48, x2:840, y2:460, color:'rgba(217,119,6,0.04)', stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        // Init
+        {id:'hm_new',    cx:300, cy: 88, w:310, h:40, label:'Bme680::new()',              sub:'I2cDevice, Bme680Address::AddrLow (0x76), Delay',       color:'#0a2418', stroke:'#059669'},
+        {id:'hm_init',   cx:300, cy:160, w:310, h:40, label:'bme.init(Config::default()).await', sub:'oversampling · IIR filter · heater plate setup', color:'#0a2418', stroke:'#059669'},
+        {id:'hm_ticker', cx:300, cy:220, w:310, h:36, label:'Ticker::every(1 s)',          sub:'1 Hz poll cadence',                                     color:'#0a2418', stroke:'#059669'},
+        // Loop
+        {id:'hm_loop',   cx:300, cy:296, w:120, h:32, label:'↺  loop',                  color:'#122518', stroke:'#059669', shape:'stadium'},
+        {id:'hm_feed',   cx:300, cy:350, w:310, h:36, label:'watchdog.feed().await',        color:'#1a1a1a', stroke:'#64748b'},
+        {id:'hm_meas',   cx:300, cy:408, w:310, h:44, label:'bme.measure().await',          sub:'→ Ok(m) | Err(MeasurementTimedOut | InvalidChipId | I2c)', color:'#0a2418', stroke:'#059669'},
+        // Branch Ok
+        {id:'hm_ok',     cx:175, cy:490, w:165, h:36, label:'Ok(m)',                        color:'#0a2418', stroke:'#059669'},
+        {id:'hm_check',  cx:175, cy:556, w:220, h:36, label:'if !sender.is_full()',          color:'#0c2233', stroke:'#0891b2'},
+        {id:'hm_send',   cx:175, cy:616, w:230, h:36, label:'sender.send(Humi(T,RH,Ω)).await', sub:'T°C, RH%, gas resistance Ω', color:'#0c2233', stroke:'#0891b2'},
+        // Branch Err
+        {id:'hm_err',    cx:430, cy:490, w:170, h:36, label:'Err(e)',                        sub:'TimedOut | InvalidChipId | I2c', color:'#3a1010', stroke:'#dc2626'},
+        {id:'hm_log',    cx:430, cy:556, w:170, h:36, label:'log error, continue',           color:'#3a1010', stroke:'#dc2626'},
+        // Ticker
+        {id:'hm_tick',   cx:300, cy:656, w:280, h:36, label:'ticker.next().await',           sub:'sleep until next 1 s slot', color:'#0a2418', stroke:'#059669'},
+        // External
+        {id:'hm_ext_i2c',cx:710, cy:160, w:155, h:36, label:'I2C0 Bus',  sub:'PIN_4/PIN_5 · Async DMA', color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'hm_ext_wd', cx:710, cy:350, w:155, h:36, label:'Watchdog',  sub:'measure_ms + 1 s timeout',   color:'#1a1a1a', stroke:'#64748b', ext:true},
+        // Channel
+        {id:'hm_ext_ch', cx:300, cy:760, w:220, h:36, label:'MeasurementChannel', sub:'cap 32 · CriticalSectionRawMutex', color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+      ],
+      edges: [
+        {from:'hm_new',    to:'hm_init',   color:'#059669'},
+        {from:'hm_init',   to:'hm_ticker', color:'#059669'},
+        {from:'hm_ticker', to:'hm_loop',   color:'#059669'},
+        {from:'hm_loop',   to:'hm_feed',   color:'#059669'},
+        {from:'hm_feed',   to:'hm_meas',   color:'#059669'},
+        {from:'hm_meas',   to:'hm_ok',     color:'#059669', label:'Ok'},
+        {from:'hm_meas',   to:'hm_err',    color:'#dc2626', label:'Err'},
+        {from:'hm_ok',     to:'hm_check',  color:'#059669'},
+        {from:'hm_check',  to:'hm_send',   color:'#0891b2', label:'not full'},
+        {from:'hm_send',   to:'hm_tick',   color:'#059669'},
+        {from:'hm_err',    to:'hm_log',    color:'#dc2626'},
+        {from:'hm_log',    to:'hm_tick',   color:'#059669'},
+        {from:'hm_tick',   to:'hm_ext_ch', color:'#0891b2', label:'Humi(T,RH,Ω)'},
+        {from:'hm_ext_ch', to:'hm_loop',   color:'#059669', label:'↺ next iteration', loopback:true},
+        {from:'hm_new',    to:'hm_ext_i2c',color:'#d97706', label:'I2cDevice::new(bus)'},
+        {from:'hm_meas',   to:'hm_ext_i2c',color:'#d97706', label:'I2C read'},
+        {from:'hm_feed',   to:'hm_ext_wd', color:'#64748b', label:'token'},
+      ]
+    } },
+
+  // ── Core 1 / Wi-Fi path ──
+  { id: 'core1', x: 1000, y: 410, w: 165, h: 40, shape: 'rect', color: '#1e1040', stroke: '#7c3aed', label: 'spawn_core1()', sub: 'Executor on Core 1', core: 1,
+    title: 'Core 1 — Embassy Executor', badge: 'CORE 1', badgeColor: '#1e1040',
+    desc: 'Starts the second Cortex-M33 core with a dedicated Embassy executor and 128 KB stack.',
+    steps: [
+      '1. StaticCell<Stack<131072>>::new() — 128 KB stack for Core 1',
+      '2. StaticCell<Executor>::new() — separate Embassy executor instance',
+      '3. spawn_core1(p.CORE1, stack, move || { … }) — wakes Core 1, passes closure',
+      '4. Core 1 closure: CORE1_EXECUTOR.init(Executor::new()).run(|spawner| {',
+      '     spawner.spawn(wifi_task(watchdog, spawner, wifi_pins, sender, receiver, rq_recv, rp_send))',
+      '   })',
+    ],
+    extra: [],
+    detail_graph: {
+      title: 'spawn_core1 — Internal Execution Flow',
+      sections: [
+        {label:'INIT',     x1:60, y1:48, x2:520, y2:352, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'EXTERNAL', x1:532,y1:48, x2:722, y2:352, color:'rgba(217,119,6,0.04)',   stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'c1_stack', cx:290, cy: 80, w:312, h:40, label:'StaticCell<Stack<131072>>::init()',         sub:'128 KB dedicated stack for Core 1',                            color:'#1e1040', stroke:'#7c3aed'},
+        {id:'c1_exec',  cx:290, cy:156, w:312, h:40, label:'StaticCell<Executor>::init()',              sub:'dedicated Embassy executor instance',                          color:'#1e1040', stroke:'#7c3aed'},
+        {id:'c1_spawn', cx:290, cy:232, w:312, h:40, label:'spawn_core1(p.CORE1, stack, closure)',      sub:'wakes Cortex-M33 Core 1 \u00b7 passes environment closure',     color:'#1e1040', stroke:'#7c3aed'},
+        {id:'c1_run',   cx:290, cy:312, w:312, h:44, label:'executor.run(|spawner| { spawn(wifi_task) })', sub:'Core 1 executor event loop \u2014 wifi_task runs here indefinitely', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'c1_ext',   cx:627, cy:232, w:160, h:36, label:'CORE1 Peripheral', sub:'Cortex-M33 second core', color:'#1a110a', stroke:'#d97706', ext:true},
+      ],
+      edges: [
+        {from:'c1_stack', to:'c1_exec',  color:'#7c3aed'},
+        {from:'c1_exec',  to:'c1_spawn', color:'#7c3aed'},
+        {from:'c1_spawn', to:'c1_run',   color:'#7c3aed'},
+        {from:'c1_ext',   to:'c1_spawn', color:'#d97706'},
+      ]
+    } },
+
+  { id: 'wifi_task', x: 1000, y: 500, w: 185, h: 44, shape: 'rect', color: '#1e1040', stroke: '#7c3aed', label: 'wifi_task()', sub: 'CYW43 · embassy-net · UDP', core: 1,
+    title: 'wifi_task — CYW43439', badge: 'CORE 1', badgeColor: '#1e1040',
+    desc: 'Wi-Fi orchestration: verifies FW blobs, inits radio via PIO-SPI, brings up network stack, broadcasts measurements over UDP.',
+    steps: [
+      '1. load_firmware_blob(WIFI_FW_ADDR, WIFI_FW_LEN, WIFI_FW_CRC) — CRC-verify Wi-Fi FW from flash',
+      '2. load_firmware_blob(WIFI_CLM_ADDR, WIFI_CLM_LEN, WIFI_CLM_CRC) — CRC-verify CLM blob',
+      '3. load_device_config(WIFI_CREDS_ADDR) — read DeviceConfig (WifiConf + ident) from flash',
+      '4. Output::new(EN=PIN_23, Low) + Output::new(CS=PIN_25, High)',
+      '5. PioSpi::new(PIO0.sm0, irq0, RM2_CLOCK_DIVIDER, cs, IO=PIN_24, CK=PIN_29, DMA_CH1)',
+      '6. cyw43::new(state, pwr, spi, fw, nvram).await → (wifi_dev, wifi_control, runner)',
+      '7. spawner.must_spawn(cyw43_task(runner))',
+      '8. wifi_control.init(clm).await → set_power_management(PowerSave)',
+      '9. AP mode: start_ap_open/wpa2(ssid, ch5) | Client: join(ssid, pw) + wait_link_up + wait_config_up',
+      '10. embassy_net::new(wifi_dev, config, StackResources<3>, seed) → spawner.must_spawn(net_task)',
+      '11. UdpSocket::new(…).bind(8099)  →  WIFI_READY.store(true)',
+      '12. spawner.must_spawn(wifi_ident_bcast(ident, sender))',
+      '13. Main loop: select(receiver.receive(), request.receive()) {',
+      '      First(msg) → bytes = msg.into() → socket.send_to(bytes, 255.255.255.255:8099)',
+      '                    dr.update(len) → log rate every 2 s',
+      '      Second(_)  → reply.send(dr.peek()).await',
+      '    }',
+    ],
+    extra: ['UDP port: 8099 → broadcast 255.255.255.255', 'AP default: 169.254.1.1/16, SSID kiwi-ap', 'DataRate tracked every 2 s', 'Spawns: cyw43_task, net_task, wifi_ident_bcast'],
+    detail_graph: {
+      title: 'wifi_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT',     x1:60, y1: 48, x2:622, y2:652, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'LOOP',     x1:60, y1:664, x2:622, y2:948, color:'rgba(124,58,237,0.04)',  stroke:'rgba(124,58,237,0.2)'},
+        {label:'EXTERNAL', x1:634,y1: 48, x2:864, y2:948, color:'rgba(217,119,6,0.04)',   stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'wf_fw',    cx:341, cy: 88, w:332, h:40, label:'load_firmware_blob(WIFI_FW)',    sub:'CRC-verify Wi-Fi firmware from flash (WIFI_FW_ADDR)',              color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_clm',   cx:341, cy:160, w:332, h:40, label:'load_firmware_blob(WIFI_CLM)',   sub:'CRC-verify CLM control module from flash (WIFI_CLM_ADDR)',         color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_conf',  cx:341, cy:232, w:332, h:40, label:'load_device_config()',            sub:'DeviceConfig { WifiConf + ident } from WIFI_CREDS_ADDR',           color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_pio',   cx:341, cy:308, w:332, h:40, label:'PioSpi::new()',                   sub:'PIO0.sm0 \u00b7 RM2_CLK_DIV \u00b7 irq0 \u00b7 IO=PIN_24 CK=PIN_29 DMA_CH1', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_cyw',   cx:341, cy:384, w:332, h:44, label:'cyw43::new().await',              sub:'(pwr,spi,fw,nvram) \u2192 dev,control,runner \u00b7 spawn cyw43_task', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_net',   cx:341, cy:460, w:332, h:44, label:'embassy_net::new() + UdpSocket::bind(8099)', sub:'StackResources<3> \u00b7 seed=RoscRng \u00b7 spawn net_task', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_mode',  cx:341, cy:536, w:332, h:44, label:'AP / Client network start',       sub:'AP: start_ap_open/wpa2(ssid,ch5) | Client: join+wait_config_up', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_ready', cx:341, cy:616, w:332, h:36, label:'WIFI_READY.store(true)',           sub:'receiver.clear() \u00b7 spawn wifi_ident_bcast(ident, sender)',    color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_loop',  cx:341, cy:684, w:120, h:32, label:'\u21ba  loop',                    color:'#0d1828', stroke:'#7c3aed', shape:'stadium'},
+        {id:'wf_feed',  cx:341, cy:744, w:332, h:36, label:'watchdog.feed().await',            color:'#1a1a1a', stroke:'#64748b'},
+        {id:'wf_sel',   cx:341, cy:820, w:332, h:44, label:'select(receiver.receive(), request.receive())', sub:'concurrent wait \u2014 first arrival wins', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_msg',   cx:193, cy:904, w:222, h:36, label:'First \u2192 send_to(bytes, bcast:8099)', sub:'dr.update(len) \u2014 data rate tracking', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'wf_rq',    cx:489, cy:904, w:222, h:36, label:'Second \u2192 reply.send(dr.peek())', sub:'DataRate reply to USB task',                   color:'#0c2233', stroke:'#0891b2'},
+        {id:'wf_ext_flash', cx:748, cy:232, w:170, h:36, label:'Flash Memory', sub:'WIFI_FW \u00b7 WIFI_CLM \u00b7 DeviceConfig',       color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'wf_ext_pio',   cx:748, cy:384, w:170, h:36, label:'PIO0 + DMA_CH1',  sub:'gSPI bus \u00b7 CS=PIN_25 EN=PIN_23',            color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'wf_ext_ch',    cx:748, cy:820, w:170, h:36, label:'MeasurementChannel', sub:'cap 32 \u00b7 sensor data stream',             color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+        {id:'wf_ext_dr',    cx:748, cy:904, w:170, h:36, label:'DR_REQUEST / DR_REPLY', sub:'data rate query channels',                  color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+      ],
+      edges: [
+        {from:'wf_fw',    to:'wf_clm',   color:'#7c3aed'},
+        {from:'wf_clm',   to:'wf_conf',  color:'#7c3aed'},
+        {from:'wf_conf',  to:'wf_pio',   color:'#7c3aed'},
+        {from:'wf_pio',   to:'wf_cyw',   color:'#7c3aed'},
+        {from:'wf_cyw',   to:'wf_net',   color:'#7c3aed'},
+        {from:'wf_net',   to:'wf_mode',  color:'#7c3aed'},
+        {from:'wf_mode',  to:'wf_ready', color:'#7c3aed'},
+        {from:'wf_ready', to:'wf_loop',  color:'#7c3aed'},
+        {from:'wf_loop',  to:'wf_feed',  color:'#7c3aed'},
+        {from:'wf_feed',  to:'wf_sel',   color:'#7c3aed'},
+        {from:'wf_sel',   to:'wf_msg',   color:'#7c3aed', label:'First(msg)'},
+        {from:'wf_sel',   to:'wf_rq',    color:'#0891b2', label:'Second(_)'},
+        {from:'wf_msg',   to:'wf_loop',  loopback:true, color:'#7c3aed', label:'\u21ba next iteration'},
+        {from:'wf_rq',    to:'wf_loop',  loopback:true, color:'#0891b2'},
+        {from:'wf_ext_flash', to:'wf_conf', color:'#d97706'},
+        {from:'wf_ext_pio',   to:'wf_cyw',  color:'#d97706'},
+        {from:'wf_ext_ch',    to:'wf_sel',  color:'#0891b2'},
+        {from:'wf_ext_dr',    to:'wf_rq',   color:'#0891b2'},
+      ]
+    } },
+
+  { id: 'cyw43_task', x: 870, y: 620, w: 145, h: 32, shape: 'rect', color: '#1e1040', stroke: '#7c3aed', label: 'cyw43_task', sub: 'SPI runner', core: 1,
+    title: 'cyw43_task', badge: 'CORE 1', badgeColor: '#1e1040',
+    desc: 'Drives the CYW43439 radio over PIO-emulated gSPI. Runs the cyw43 hardware runner loop.',
+    steps: [
+      '1. Receives cyw43::Runner<SpiBus<Output, PioSpi>>',
+      '2. runner.run().await — infinite loop:',
+      '     polls PIO0_IRQ_0 / DMA_CH1 for SPI burst completion',
+      '     dispatches radio events (TX, RX, control) to cyw43 state machine',
+      '     feeds radio firmware event queue',
+    ],
+    extra: ['Interface: PIO0 gSPI', 'CS=PIN_25, IO=PIN_24, CK=PIN_29, EN=PIN_23', 'DMA: DMA_CH1'],
+    detail_graph: {
+      title: 'cyw43_task — Internal Execution Flow',
+      sections: [
+        {label:'LOOP',     x1:60, y1:48, x2:522, y2:300, color:'rgba(124,58,237,0.04)', stroke:'rgba(124,58,237,0.2)'},
+        {label:'EXTERNAL', x1:534,y1:48, x2:724, y2:300, color:'rgba(217,119,6,0.04)',  stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'cy_init', cx:291, cy: 88, w:312, h:40, label:'cyw43::Runner<SpiBus> received',   sub:'Runner<SpiBus<Output, PioSpi>> passed from wifi_task via cyw43::new()',                              color:'#1e1040', stroke:'#7c3aed'},
+        {id:'cy_loop', cx:291, cy:164, w:120, h:32, label:'\u21ba  loop',                     color:'#0d1828', stroke:'#7c3aed', shape:'stadium'},
+        {id:'cy_poll', cx:291, cy:236, w:312, h:44, label:'runner.run().await',                sub:'polls PIO0_IRQ_0 + DMA_CH1 \u00b7 dispatches TX/RX/control events to CYW43439 state machine', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'cy_ext',  cx:629, cy:236, w:160, h:36, label:'PIO0 + DMA_CH1',                   sub:'gSPI bus \u00b7 CS=PIN_25 IO=PIN_24 CK=PIN_29 EN=PIN_23', color:'#1a110a', stroke:'#d97706', ext:true},
+      ],
+      edges: [
+        {from:'cy_init', to:'cy_loop',             color:'#7c3aed'},
+        {from:'cy_loop', to:'cy_poll',             color:'#7c3aed'},
+        {from:'cy_poll', to:'cy_loop', loopback:true, color:'#7c3aed', label:'\u21ba radio event'},
+        {from:'cy_ext',  to:'cy_poll',             color:'#d97706'},
+      ]
+    } },
+
+  { id: 'net_task', x: 1040, y: 620, w: 145, h: 32, shape: 'rect', color: '#1e1040', stroke: '#7c3aed', label: 'net_task', sub: 'embassy-net runner', core: 1,
+    title: 'net_task', badge: 'CORE 1', badgeColor: '#1e1040',
+    desc: 'Drives the embassy-net / smoltcp TCP-IP stack event loop.',
+    steps: [
+      '1. Receives embassy_net::Runner<NetDriver<CYW43>>',
+      '2. runner.run().await — smoltcp event loop:',
+      '     processes Ethernet frames from CYW43 NetDriver',
+      '     handles ARP, ICMPv4, UDP, DHCPv4',
+      '     manages socket send/receive buffers',
+      '     wakes waiting tasks (UdpSocket, TcpSocket) when data arrives',
+    ],
+    extra: ['Stack: smoltcp via embassy-net', 'Protocols: ARP, ICMPv4, UDP, DHCPv4'],
+    detail_graph: {
+      title: 'net_task — Internal Execution Flow',
+      sections: [
+        {label:'LOOP',     x1:60, y1:48, x2:522, y2:296, color:'rgba(124,58,237,0.04)', stroke:'rgba(124,58,237,0.2)'},
+        {label:'EXTERNAL', x1:534,y1:48, x2:724, y2:296, color:'rgba(217,119,6,0.04)',  stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'nt_init', cx:291, cy: 88, w:312, h:40, label:'embassy_net::Runner received',    sub:'Runner<NetDriver<CYW43>> passed from wifi_task via embassy_net::new()',                         color:'#1e1040', stroke:'#7c3aed'},
+        {id:'nt_loop', cx:291, cy:164, w:120, h:32, label:'\u21ba  loop',                    color:'#0d1828', stroke:'#7c3aed', shape:'stadium'},
+        {id:'nt_poll', cx:291, cy:232, w:312, h:44, label:'runner.run().await',               sub:'smoltcp event loop \u00b7 ARP \u00b7 ICMPv4 \u00b7 UDP \u00b7 DHCPv4 \u00b7 wakes waiting socket tasks', color:'#1e1040', stroke:'#7c3aed'},
+        {id:'nt_ext',  cx:629, cy:232, w:160, h:36, label:'CYW43 NetDriver',                  sub:'Ethernet frames from radio \u00b7 embassy-net bridge', color:'#1a110a', stroke:'#d97706', ext:true},
+      ],
+      edges: [
+        {from:'nt_init', to:'nt_loop',             color:'#7c3aed'},
+        {from:'nt_loop', to:'nt_poll',             color:'#7c3aed'},
+        {from:'nt_poll', to:'nt_loop', loopback:true, color:'#7c3aed', label:'\u21ba next event'},
+        {from:'nt_ext',  to:'nt_poll',             color:'#d97706'},
+      ]
+    } },
+
+  { id: 'ident_bcast', x: 1210, y: 620, w: 145, h: 32, shape: 'rect', color: '#1e1040', stroke: '#7c3aed', label: 'wifi_ident_bcast', sub: 'every 15 s', core: 1,
+    title: 'wifi_ident_bcast', badge: 'CORE 1', badgeColor: '#1e1040',
+    desc: 'Broadcasts the device identity string into the measurement channel every 15 seconds.',
+    steps: [
+      '1. Receives ident: String<12> cloned from DeviceConfig',
+      '2. Ticker::every(Duration::from_secs(15))',
+      '3. loop {',
+      '     CommonMeasurement::Id(ident.clone())',
+      '     sender.send(SingleMeasurement { measurement, timestamp: Instant::now().as_ticks() }).await',
+      '     ticker.next().await',
+      '   }',
+    ],
+    extra: ['Period: 15 s', 'Sends: CommonMeasurement::Id(device_name)', 'Consumed by wifi_task → UDP broadcast'],
+    detail_graph: {
+      title: 'wifi_ident_bcast — Internal Execution Flow',
+      sections: [
+        {label:'INIT',     x1:60, y1: 48, x2:522, y2:132, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'LOOP',     x1:60, y1:144, x2:522, y2:436, color:'rgba(124,58,237,0.04)',  stroke:'rgba(124,58,237,0.2)'},
+        {label:'EXTERNAL', x1:534,y1: 48, x2:724, y2:436, color:'rgba(217,119,6,0.04)',   stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'ib_ticker', cx:291, cy: 88, w:302, h:36, label:'Ticker::every(Duration::from_secs(15))', sub:'broadcast period = 15 s',                                             color:'#1e1040', stroke:'#7c3aed'},
+        {id:'ib_loop',   cx:291, cy:172, w:120, h:32, label:'\u21ba  loop',                           color:'#0d1828', stroke:'#7c3aed', shape:'stadium'},
+        {id:'ib_msg',    cx:291, cy:244, w:302, h:40, label:'CommonMeasurement::Id(ident.clone())',    sub:'device name string \u2014 cloned each iteration',                   color:'#1e1040', stroke:'#7c3aed'},
+        {id:'ib_send',   cx:291, cy:320, w:302, h:40, label:'sender.send(SingleMeasurement { \u2026 }).await', sub:'measurement + timestamp: Instant::now().as_ticks()',  color:'#0c2233', stroke:'#0891b2'},
+        {id:'ib_tick',   cx:291, cy:400, w:302, h:36, label:'ticker.next().await',                    sub:'sleep until next 15 s slot',                                         color:'#1e1040', stroke:'#7c3aed'},
+        {id:'ib_ext_ch', cx:629, cy:320, w:160, h:36, label:'MeasurementChannel', sub:'cap 32 \u00b7 wifi_task reads Id measurements', color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+      ],
+      edges: [
+        {from:'ib_ticker', to:'ib_loop', color:'#7c3aed'},
+        {from:'ib_loop',   to:'ib_msg',  color:'#7c3aed'},
+        {from:'ib_msg',    to:'ib_send', color:'#7c3aed'},
+        {from:'ib_send',   to:'ib_tick', color:'#7c3aed'},
+        {from:'ib_tick',   to:'ib_loop', loopback:true, color:'#7c3aed', label:'\u21ba 15 s'},
+        {from:'ib_send',   to:'ib_ext_ch', color:'#0891b2'},
+      ]
+    } },
+
+  // ── USB path ──
+  { id: 'usb_task', x: 660, y: 410, w: 170, h: 40, shape: 'rect', color: '#1f1a00', stroke: '#d97706', label: 'usb_task()', sub: 'Core 0 Spawner', core: 0,
+    title: 'usb_task()', badge: 'CORE 0', badgeColor: '#1f1a00',
+    desc: 'Builds the embassy-usb CDC-ACM device and spawns the two USB sub-tasks.',
+    steps: [
+      '1. UsbDriver::new(USB, USBCTRL_IRQ handler)',
+      '2. Config::new(VID=0xC001, PID=0xBEE5) — manufacturer=LoCSST/SKM, product=Kiwi Rev. B, serial=2025-0001, max_power=100 mA',
+      '3. Static buffers: conf_desc[256], bos_desc[256], control_buf[64] via StaticCell',
+      '4. Builder::new(driver, config, bufs) → CdcAcmClass::new(&mut builder, CdcAcmState, max_pkt=64)',
+      '5. builder.build() → UsbDevice stored in StaticCell<UsbDeviceDriver>',
+      '6. spawner.spawn(usb_device_task(usb_dev))',
+      '7. spawner.spawn(usb_comm_task(comm, watchdog, flash, rq_send, rp_recv))',
+    ],
+    extra: ['VID:PID 0xC001:0xBEE5', 'CDC-ACM class, max packet 64 bytes'],
+    detail_graph: {
+      title: 'usb_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT',     x1:60, y1:48, x2:522, y2:516, color:'rgba(79,142,247,0.04)', stroke:'rgba(79,142,247,0.22)'},
+        {label:'EXTERNAL', x1:534,y1:48, x2:724, y2:516, color:'rgba(217,119,6,0.04)',  stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'ut_drv',   cx:291, cy: 80, w:322, h:40, label:'UsbDriver::new(USB, USBCTRL_IRQ)',      sub:'USB 1.1 Full-Speed peripheral driver',                                  color:'#1f1a00', stroke:'#d97706'},
+        {id:'ut_cfg',   cx:291, cy:156, w:322, h:40, label:'Config::new(VID=0xC001, PID=0xBEE5)',   sub:'manufacturer=LoCSST/SKM \u00b7 product=Kiwi Rev.B \u00b7 max_power=100 mA', color:'#1f1a00', stroke:'#d97706'},
+        {id:'ut_bufs',  cx:291, cy:232, w:322, h:40, label:'StaticCell buffers \u00d7 3',           sub:'conf_desc[256] \u00b7 bos_desc[256] \u00b7 control_buf[64]',             color:'#1f1a00', stroke:'#d97706'},
+        {id:'ut_build', cx:291, cy:308, w:322, h:40, label:'Builder::new() \u2192 CdcAcmClass::new()', sub:'CDC-ACM class \u00b7 max_packet=64 bytes \u00b7 CdcAcmState',        color:'#1f1a00', stroke:'#d97706'},
+        {id:'ut_dev',   cx:291, cy:384, w:322, h:40, label:'builder.build() \u2192 StaticCell<UsbDeviceDriver>', sub:'UsbDevice ready for lifetime \'static',                  color:'#1f1a00', stroke:'#d97706'},
+        {id:'ut_sp1',   cx:160, cy:464, w:190, h:36, label:'spawn usb_device_task(usb_dev)', sub:'USB enumeration + control',          color:'#1f1a00', stroke:'#d97706'},
+        {id:'ut_sp2',   cx:415, cy:464, w:190, h:36, label:'spawn usb_comm_task(comm, \u2026)', sub:'CDC-ACM CLI + flash + DR channels', color:'#1f1a00', stroke:'#d97706'},
+        {id:'ut_ext',   cx:629, cy: 80, w:160, h:36, label:'USB Peripheral', sub:'USB 1.1 Full-Speed \u00b7 IRQ: USBCTRL_IRQ', color:'#1a110a', stroke:'#d97706', ext:true},
+      ],
+      edges: [
+        {from:'ut_drv',   to:'ut_cfg',   color:'#d97706'},
+        {from:'ut_cfg',   to:'ut_bufs',  color:'#d97706'},
+        {from:'ut_bufs',  to:'ut_build', color:'#d97706'},
+        {from:'ut_build', to:'ut_dev',   color:'#d97706'},
+        {from:'ut_dev',   to:'ut_sp1',   color:'#d97706'},
+        {from:'ut_dev',   to:'ut_sp2',   color:'#d97706'},
+        {from:'ut_ext',   to:'ut_drv',   color:'#d97706'},
+      ]
+    } },
+
+  { id: 'usb_dev', x: 590, y: 520, w: 145, h: 32, shape: 'rect', color: '#1f1a00', stroke: '#d97706', label: 'usb_device_task', sub: 'USB enumeration', core: 0,
+    title: 'usb_device_task', badge: 'USB', badgeColor: '#1f1a00',
+    desc: 'Runs the embassy-usb device state machine for USB enumeration and control.',
+    steps: [
+      '1. usb_dev.run().await — infinite loop driven by USBCTRL_IRQ:',
+      '     handles USB bus reset → re-enumeration',
+      '     responds to control transfers (GET_DESCRIPTOR, SET_ADDRESS, SET_CONFIGURATION)',
+      '     manages suspend / resume signalling',
+      '     notifies CdcAcmClass of connection state changes',
+    ],
+    extra: ['IRQ: USBCTRL_IRQ', 'USB 1.1 Full-Speed (12 Mbps)'],
+    detail_graph: {
+      title: 'usb_device_task — Internal Execution Flow',
+      sections: [
+        {label:'LOOP',     x1:60, y1:48, x2:522, y2:300, color:'rgba(217,119,6,0.04)', stroke:'rgba(217,119,6,0.2)'},
+        {label:'EXTERNAL', x1:534,y1:48, x2:724, y2:300, color:'rgba(217,119,6,0.04)', stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'ud_init', cx:291, cy: 88, w:312, h:40, label:'UsbDevice::run() starts',       sub:'infinite IRQ-driven loop \u2014 USBCTRL_IRQ',                                                                color:'#1f1a00', stroke:'#d97706'},
+        {id:'ud_loop', cx:291, cy:164, w:120, h:32, label:'\u21ba  loop',                   color:'#160c00', stroke:'#d97706', shape:'stadium'},
+        {id:'ud_bus',  cx:291, cy:236, w:312, h:44, label:'process USB bus events',         sub:'bus reset \u00b7 GET_DESCRIPTOR \u00b7 SET_ADDRESS/CONFIG \u00b7 suspend/resume \u00b7 notify CdcAcmClass', color:'#1f1a00', stroke:'#d97706'},
+        {id:'ud_ext',  cx:629, cy:236, w:160, h:36, label:'USBCTRL_IRQ',                    sub:'USB 1.1 Full-Speed \u00b7 12 Mbps',                                                                         color:'#1a110a', stroke:'#d97706', ext:true},
+      ],
+      edges: [
+        {from:'ud_init', to:'ud_loop',             color:'#d97706'},
+        {from:'ud_loop', to:'ud_bus',              color:'#d97706'},
+        {from:'ud_bus',  to:'ud_loop', loopback:true, color:'#d97706', label:'\u21ba next event'},
+        {from:'ud_ext',  to:'ud_bus',              color:'#d97706'},
+      ]
+    } },
+
+  { id: 'usb_comm', x: 750, y: 520, w: 145, h: 32, shape: 'rect', color: '#1f1a00', stroke: '#d97706', label: 'usb_comm_task', sub: 'CDC-ACM CLI', core: 0,
+    title: 'usb_comm_task — CLI over USB', badge: 'USB', badgeColor: '#1f1a00',
+    desc: 'Text-based command interface over USB CDC-ACM. Parses commands with kmdparse, dispatches to handlers that read/write flash and query Wi-Fi status.',
+    steps: [
+      '1. Flash::<_, Async, FLASH_SIZE>::new(flash, DMA_CH0, handler) — init async flash driver',
+      '   Test read at WIFI_CREDS_OFST to verify flash accessibility',
+      '2. load_device_config(WIFI_CREDS_ADDR) → cached pending DeviceConfig',
+      '3. loop { dev.wait_connection().await  ← blocks until USB host connects',
+      '4.   loop { dev.read_packet(&mut data) → parse::<Command>(msg) →',
+      '       Help    → print_help_message',
+      '       Wifi(Status) → load_device_config + if WIFI_READY:',
+      '                        rq_send.send(()).await  → rp_recv.receive() (2 s timeout)',
+      '                        write_packet_rate(dev, rate)',
+      '       Wifi(Ap{ssid,pw})  → validate → set WifiConf::Ap in pending conf',
+      '       Wifi(Cl{ssid,pw})  → validate → set WifiConf::Client in pending conf',
+      '       Store → update_config(flash, conf) → watchdog.trigger_reset()',
+      '       Show  → print pending conf',
+      '       Ident(Set(name)) → update conf.ident',
+      '       Reset → watchdog.trigger_reset(None)',
+      '     }',
+      '   }',
+    ],
+    extra: ['Commands: help, wifi status/ap/cl, ident get/set, show, store, reset, clear', 'Flash access: DMA_CH0 async', 'DataRate: rq_send → rp_recv, 2 s timeout'],
+    detail_graph: {
+      title: 'usb_comm_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT',     x1:60, y1: 48, x2:552, y2:208, color:'rgba(79,142,247,0.04)',  stroke:'rgba(79,142,247,0.22)'},
+        {label:'LOOP',     x1:60, y1:220, x2:552, y2:596, color:'rgba(217,119,6,0.04)',   stroke:'rgba(217,119,6,0.2)'},
+        {label:'EXTERNAL', x1:564,y1: 48, x2:764, y2:596, color:'rgba(217,119,6,0.04)',   stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'uc_flash',  cx:306, cy: 88, w:332, h:40, label:'Flash::new(DMA_CH0) + verify read',           sub:'async flash driver \u00b7 WIFI_CREDS_OFST test read',                            color:'#1f1a00', stroke:'#d97706'},
+        {id:'uc_conf',   cx:306, cy:164, w:332, h:36, label:'load_device_config()',                         sub:'cached pending DeviceConfig { WifiConf + ident }',                              color:'#1f1a00', stroke:'#d97706'},
+        {id:'uc_loop',   cx:306, cy:240, w:120, h:32, label:'\u21ba  loop',                                color:'#160c00', stroke:'#d97706', shape:'stadium'},
+        {id:'uc_wait',   cx:306, cy:308, w:332, h:36, label:'dev.wait_connection().await',                  sub:'blocks until USB host connects \u00b7 loops again on disconnect',               color:'#1f1a00', stroke:'#d97706'},
+        {id:'uc_read',   cx:306, cy:380, w:332, h:36, label:'dev.read_packet() \u2192 parse::<Command>(msg)', sub:'kmdparse \u00b7 UTF-8 \u2192 Command enum \u00b7 accumulates until newline', color:'#1f1a00', stroke:'#d97706'},
+        {id:'uc_disp',   cx:306, cy:452, w:332, h:40, label:'match cmd { \u2026 }',                        sub:'Help \u00b7 Wifi(Status/Ap/Cl) \u00b7 Ident(Set/Get) \u00b7 Show \u00b7 Store \u00b7 Reset \u00b7 Clear', color:'#1f1a00', stroke:'#d97706'},
+        {id:'uc_store',  cx:155, cy:540, w:208, h:40, label:'Store: update_config(flash)',                  sub:'erase+write+verify WIFI_CREDS_OFST \u2192 trigger_reset()',                     color:'#1f1a00', stroke:'#d97706'},
+        {id:'uc_resp',   cx:430, cy:540, w:208, h:36, label:"write response \u2192 '\\r\\n> '",           sub:'per-command CDC-ACM output',                                                    color:'#1f1a00', stroke:'#d97706'},
+        {id:'uc_ext_usb',   cx:664, cy:308, w:172, h:36, label:'USB Host / CDC-ACM',      sub:'virtual COM port \u00b7 read_packet',                               color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'uc_ext_flash', cx:664, cy: 88, w:172, h:36, label:'Flash Memory',            sub:'WIFI_CREDS_OFST \u00b7 async DMA_CH0',                              color:'#1a110a', stroke:'#d97706', ext:true},
+        {id:'uc_ext_dr',    cx:664, cy:452, w:172, h:36, label:'DR_REQUEST / DR_REPLY',   sub:'rq_send.send(()) \u2192 rp_recv.receive() \u00b7 2 s timeout',     color:'#0c2233', stroke:'#0891b2', ext:true, shape:'hexagon'},
+      ],
+      edges: [
+        {from:'uc_flash',    to:'uc_conf',  color:'#d97706'},
+        {from:'uc_conf',     to:'uc_loop',  color:'#d97706'},
+        {from:'uc_loop',     to:'uc_wait',  color:'#d97706'},
+        {from:'uc_wait',     to:'uc_read',  color:'#d97706'},
+        {from:'uc_read',     to:'uc_disp',  color:'#d97706'},
+        {from:'uc_disp',     to:'uc_store', color:'#d97706', label:'Store'},
+        {from:'uc_disp',     to:'uc_resp',  color:'#d97706', label:'other'},
+        {from:'uc_resp',     to:'uc_loop',  loopback:true, color:'#d97706', label:'\u21ba next packet'},
+        {from:'uc_ext_usb',  to:'uc_wait',  color:'#d97706'},
+        {from:'uc_ext_flash',to:'uc_flash', color:'#d97706'},
+        {from:'uc_ext_dr',   to:'uc_disp',  color:'#0891b2'},
+      ]
+    } },
+
+  // ── Watchdog task ──
+  { id: 'wd_task', x: 660, y: 620, w: 160, h: 32, shape: 'rect', color: '#1a1a1a', stroke: '#64748b', label: 'watchdog_task()', sub: 'WatchdogRunner', core: 0,
+    title: 'watchdog_task', badge: 'CORE 0', badgeColor: '#1a1a1a',
+    desc: 'Runs the embassy-task-watchdog WatchdogRunner. Sole entity allowed to kick the RP2350 hardware watchdog.',
+    steps: [
+      '1. wdrunner.run().await — polling loop:',
+      '2.   Checks each registered task software token:',
+      '       token.feed() called? → mark fed',
+      '3.   If ALL tasks fed within their window:',
+      '       kicks RP2350 hardware WATCHDOG scratch register',
+      '4.   If any task exceeds timeout:',
+      '       stores TaskTimeout(task_name) in RTC scratch registers',
+      '       triggers forced hardware reset',
+      '5. On Forced reset reason → reason string available at next boot via watchdog.reset_reason()',
+    ],
+    extra: ['Global timeout: 5 s', 'Per-task timeouts configured at spawn', 'Reset reason survives across reboots'],
+    detail_graph: {
+      title: 'watchdog_task — Internal Execution Flow',
+      sections: [
+        {label:'INIT',     x1:60, y1: 48, x2:522, y2:136, color:'rgba(79,142,247,0.04)',   stroke:'rgba(79,142,247,0.22)'},
+        {label:'LOOP',     x1:60, y1:148, x2:522, y2:424, color:'rgba(100,116,139,0.04)',  stroke:'rgba(100,116,139,0.2)'},
+        {label:'EXTERNAL', x1:534,y1: 48, x2:724, y2:424, color:'rgba(217,119,6,0.04)',    stroke:'rgba(217,119,6,0.2)'},
+      ],
+      nodes: [
+        {id:'wd_init', cx:291, cy: 88, w:312, h:40, label:'WatchdogRunner received',              sub:'embassy-task-watchdog runner \u00b7 global timeout: 5 s \u00b7 tracks all registered task tokens', color:'#1a1a1a', stroke:'#64748b'},
+        {id:'wd_loop', cx:291, cy:172, w:120, h:32, label:'\u21ba  loop',                         color:'#111111', stroke:'#64748b', shape:'stadium'},
+        {id:'wd_poll', cx:291, cy:248, w:312, h:40, label:'wdrunner.run().await \u2014 poll tokens', sub:'check each task: did it call watchdog.feed() within its configured window?', color:'#1a1a1a', stroke:'#64748b'},
+        {id:'wd_ok',   cx:155, cy:344, w:202, h:40, label:'all fed: kick WATCHDOG',               sub:'write HW scratch register \u00b7 reset 5 s counter',                           color:'#1a1a1a', stroke:'#64748b'},
+        {id:'wd_fail', cx:400, cy:344, w:202, h:44, label:'timeout: trigger_reset(TaskTimeout)',   sub:'stores task name in RTC scratch \u2192 forced hardware reset',                 color:'#1a1a1a', stroke:'#64748b'},
+        {id:'wd_ext',  cx:629, cy:248, w:160, h:36, label:'RP2350 WATCHDOG',                      sub:'hardware peripheral \u00b7 5 s global timeout',                               color:'#1a110a', stroke:'#d97706', ext:true},
+      ],
+      edges: [
+        {from:'wd_init', to:'wd_loop',             color:'#64748b'},
+        {from:'wd_loop', to:'wd_poll',             color:'#64748b'},
+        {from:'wd_poll', to:'wd_ok',   color:'#64748b', label:'all fed'},
+        {from:'wd_poll', to:'wd_fail', color:'#64748b', label:'timeout'},
+        {from:'wd_ok',   to:'wd_loop', loopback:true, color:'#64748b', label:'\u21ba next cycle'},
+        {from:'wd_ok',   to:'wd_ext',              color:'#d97706'},
+      ]
+    } },
+
+  // ── Channels ──
+  { id: 'meas_ch', x: 560, y: 730, w: 185, h: 36, shape: 'hexagon', color: '#0c2233', stroke: '#0891b2', label: 'MeasurementChannel', sub: 'capacity 32', core: -1,
+    title: 'MeasurementChannel', badge: 'CHANNEL', badgeColor: '#0c2233',
+    desc: 'embassy-sync Channel<CriticalSectionRawMutex, SingleMeasurement, 32>. Cross-core safe. Sensor tasks write; wifi_task reads.',
+    extra: [
+      'Type: SingleMeasurement { measurement: CommonMeasurement, timestamp: u64 µs }',
+      'Variants: Mag(x,y,z), Accel(ax,ay,az), Gyro(gx,gy,gz), Baro(T,P,alt), Humi(T,RH,Ω), Id(name)',
+      'Capacity: 32 — sender checks is_full() and drops if full',
+      'Mutex: CriticalSectionRawMutex — safe across Core 0 / Core 1',
+    ] },
+
+  // ── Hardware ──
+  { id: 'hw_i2c', x: 130, y: 840, w: 130, h: 32, shape: 'rect', color: '#1a110a', stroke: '#d97706', label: 'I2C0 Bus', sub: 'PIN_4/PIN_5', core: -1,
+    title: 'I2C0 Hardware Bus', badge: 'HARDWARE', badgeColor: '#1a110a',
+    desc: 'Shared I2C bus: embassy-rp I2c<I2C0, Async> wrapped in NoopRawMutex Mutex, accessed via I2cDevice clones.',
+    extra: ['SDA: PIN_4', 'SCL: PIN_5', 'IRQ: I2C0_IRQ → I2cIrqHandler<I2C0>', 'Async DMA-backed transfers'] },
+
+  { id: 'hw_radio', x: 1090, y: 840, w: 150, h: 32, shape: 'rect', color: '#1a110a', stroke: '#d97706', label: 'CYW43439 Radio', sub: 'PIO0 gSPI', core: -1,
+    title: 'CYW43439 Wi-Fi Radio', badge: 'HARDWARE', badgeColor: '#1a110a',
+    desc: 'Infineon CYW43439 2.4 GHz Wi-Fi SoC controlled via PIO-emulated gSPI. FW and CLM CRC-verified from flash at boot.',
+    extra: ['Interface: PIO0 gSPI (RM2_CLOCK_DIVIDER)', 'CS=PIN_25, IO=PIN_24, CK=PIN_29, EN=PIN_23', 'DMA: DMA_CH1', 'Power: PowerSave mode'] },
+
+  { id: 'hw_flash', x: 870, y: 840, w: 150, h: 32, shape: 'rect', color: '#1a110a', stroke: '#d97706', label: 'Flash Memory', sub: 'Creds + FW blobs', core: -1,
+    title: 'Flash Memory', badge: 'HARDWARE', badgeColor: '#1a110a',
+    desc: 'Internal RP2350 flash. Stores Wi-Fi FW blob, CLM blob, and DeviceConfig (WifiConf + ident). Updated via USB CLI store command.',
+    extra: ['Wi-Fi FW: WIFI_FW_ADDR, CRC-verified', 'CLM: WIFI_CLM_ADDR, CRC-verified', 'Creds: WIFI_CREDS_ADDR', 'Async access via DMA_CH0'] },
+
+  { id: 'hw_usb', x: 590, y: 840, w: 145, h: 32, shape: 'rect', color: '#1a110a', stroke: '#d97706', label: 'USB FS Peripheral', sub: 'CDC-ACM serial', core: -1,
+    title: 'USB Full-Speed Peripheral', badge: 'HARDWARE', badgeColor: '#1a110a',
+    desc: 'RP2350 built-in USB 1.1 Full-Speed controller enumerated as CDC-ACM VCP.',
+    extra: ['IRQ: USBCTRL_IRQ', 'Class: CDC-ACM (VCP)', 'Max packet: 64 bytes', 'Max power: 100 mA'] },
+];
+
+const EDGES = [
+  { from: 'boot_init',   to: 'spawn_sensor',color: '#4f8ef7',  label: 'spawner' },
+  { from: 'boot_init',   to: 'core1',       color: '#7c3aed',  label: 'spawner → Core1' },
+  { from: 'boot_init',   to: 'usb_task',    color: '#d97706',  label: 'spawner' },
+  { from: 'boot_init',   to: 'wd_task',     color: '#64748b',  label: 'must_spawn' },
+
+  { from: 'spawn_sensor',to: 'mag_task',    color: '#059669',  label: 'sensor-mag' },
+  { from: 'spawn_sensor',to: 'imu_task',    color: '#059669',  label: 'sensor-imu' },
+  { from: 'spawn_sensor',to: 'baro_task',   color: '#059669',  label: 'sensor-baro' },
+  { from: 'spawn_sensor',to: 'humi_task',   color: '#059669',  label: 'sensor-humi' },
+
+  { from: 'mag_task',    to: 'meas_ch',     color: '#0891b2',  label: 'Mag(x,y,z)' },
+  { from: 'imu_task',    to: 'meas_ch',     color: '#0891b2',  label: 'Accel+Gyro' },
+  { from: 'baro_task',   to: 'meas_ch',     color: '#0891b2',  label: 'Baro(T,P,alt)' },
+  { from: 'humi_task',   to: 'meas_ch',     color: '#0891b2',  label: 'Humi(T,RH,Ω)' },
+
+  { from: 'core1',       to: 'wifi_task',   color: '#7c3aed',  label: 'exec.run()' },
+  { from: 'wifi_task',   to: 'cyw43_task',  color: '#7c3aed',  label: 'must_spawn' },
+  { from: 'wifi_task',   to: 'net_task',    color: '#7c3aed',  label: 'must_spawn' },
+  { from: 'wifi_task',   to: 'ident_bcast', color: '#7c3aed',  label: 'must_spawn' },
+
+  { from: 'meas_ch',     to: 'wifi_task',   color: '#0891b2',  label: 'receiver.receive()' },
+  { from: 'ident_bcast', to: 'meas_ch',     color: '#0891b2',  label: 'Id(name) every 15s' },
+
+  { from: 'usb_task',    to: 'usb_dev',     color: '#d97706',  label: 'spawn' },
+  { from: 'usb_task',    to: 'usb_comm',    color: '#d97706',  label: 'spawn' },
+
+  { from: 'usb_comm',    to: 'wifi_task',   color: '#0891b2',  label: 'DR request →' },
+  { from: 'wifi_task',   to: 'usb_comm',    color: '#0891b2',  label: '← DR reply' },
+
+  { from: 'spawn_sensor',to: 'hw_i2c',      color: '#d97706',  label: 'I2C bus' },
+  { from: 'wifi_task',   to: 'hw_radio',    color: '#d97706',  label: 'PIO gSPI' },
+  { from: 'wifi_task',   to: 'hw_flash',    color: '#d97706',  label: 'FW/CLM/creds' },
+  { from: 'usb_comm',    to: 'hw_flash',    color: '#d97706',  label: 'store creds' },
+  { from: 'usb_task',    to: 'hw_usb',      color: '#d97706',  label: 'USB periph' },
+];
+
+// ─── Physics Renderer ────────────────────────────────────────────────────────
+const wrap  = document.getElementById('canvas-wrap');
+const world = document.getElementById('world');
+document.getElementById('minimap').style.display = 'none';
+
+// ─── Pan / Zoom State ────────────────────────────────────────────────────────
+let scale = 1, panX = 0, panY = 0;
+let panning = false, panLast = {x:0,y:0};
+
+function applyTransform() {
+  world.setAttribute('transform', `translate(${panX},${panY}) scale(${scale})`);
+}
+
+function screenToWorld(cx, cy) {
+  const r = wrap.getBoundingClientRect();
+  return { x:(cx - r.left - panX)/scale, y:(cy - r.top - panY)/scale };
+}
+
+// ─── Physics State ───────────────────────────────────────────────────────────
+const phys = {};
+NODES.forEach(n => {
+  phys[n.id] = {
+    px: n.x + (Math.random()-.5)*8,
+    py: n.y + (Math.random()-.5)*8,
+    ax: n.x, ay: n.y,
+    vx: 0, vy: 0,
+    pinned: false, el: null
+  };
+});
+
+const SPRING_K  = 0.014;
+const REPULSION = 14000;
+const DAMPING   = 0.78;
+const MAX_F     = 10;
+
+function resetView() {
+  const rect = wrap.getBoundingClientRect();
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  NODES.forEach(n=>{
+    x0=Math.min(x0,n.x-n.w/2); y0=Math.min(y0,n.y-n.h/2);
+    x1=Math.max(x1,n.x+n.w/2); y1=Math.max(y1,n.y+n.h/2);
+  });
+  scale = Math.min(rect.width/(x1-x0+140), rect.height/(y1-y0+140)) * 0.9;
+  panX  = rect.width/2  - (x0+x1)/2*scale;
+  panY  = rect.height/2 - (y0+y1)/2*scale;
+  NODES.forEach(n=>{ const s=phys[n.id]; s.px=s.ax; s.py=s.ay; s.vx=0; s.vy=0; });
+  applyTransform();
+}
+function zoomIn()  { scale=Math.min(scale*1.2,4);   applyTransform(); }
+function zoomOut() { scale=Math.max(scale/1.2,0.1); applyTransform(); }
+
+// ─── Pan / Zoom Events ───────────────────────────────────────────────────────
+wrap.addEventListener('pointerdown', e => {
+  if (e.target.closest('[data-node]')) return;
+  panning=true; panLast={x:e.clientX,y:e.clientY};
+  wrap.classList.add('grabbing');
+  wrap.setPointerCapture(e.pointerId);
+});
+wrap.addEventListener('pointermove', e => {
+  if (!panning) return;
+  panX+=e.clientX-panLast.x; panY+=e.clientY-panLast.y;
+  panLast={x:e.clientX,y:e.clientY};
+  applyTransform();
+});
+wrap.addEventListener('pointerup', () => { panning=false; wrap.classList.remove('grabbing'); });
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r=wrap.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const f=e.deltaY<0?1.12:1/1.12;
+  const ns=Math.max(0.1,Math.min(4,scale*f));
+  panX=mx-(mx-panX)*ns/scale; panY=my-(my-panY)*ns/scale;
+  scale=ns; applyTransform();
+},{passive:false});
+
+// ─── Theme accent palettes (fill/stroke colour maps for each theme) ─────────
+const THEME_ACCENTS = {
+  'default': {
+    sensor: '#059669', core0: '#4f8ef7', core1: '#7c3aed',
+    channel: '#0891b2', hardware: '#d97706', watchdog: '#64748b', error: '#dc2626',
+    // [default_fill, theme_fill] pairs for every node background colour in the graph
+    fillMap: [
+      ['#0a2418','#0a2418'], ['#122518','#122518'],
+      ['#1a2340','#1a2340'], ['#0d1a2e','#0d1a2e'], ['#1e3a5f','#1e3a5f'],
+      ['#1e1040','#1e1040'], ['#0d1828','#0d1828'], ['#1a0d2e','#1a0d2e'],
+      ['#0c2233','#0c2233'],
+      ['#1a110a','#1a110a'], ['#1f1a00','#1f1a00'], ['#160c00','#160c00'],
+      ['#1a1a1a','#1a1a1a'], ['#111111','#111111'],
+      ['#3a1010','#3a1010'],
+    ],
+    lanes: [
+      { col:'rgba(79,142,247,0.05)',  str:'rgba(79,142,247,0.22)' },
+      { col:'rgba(79,142,247,0.05)',  str:'rgba(79,142,247,0.22)' },
+      { col:'rgba(124,58,237,0.05)', str:'rgba(124,58,237,0.22)' },
+      { col:'rgba(8,145,178,0.07)',  str:'rgba(8,145,178,0.28)'  },
+      { col:'rgba(217,119,6,0.06)',  str:'rgba(217,119,6,0.22)'  },
+    ],
+    legendColors: ['#4f8ef7','#7c3aed','#059669','#0891b2','#d97706'],
+    btnBack: { bg:'#1e1040', border:'#7c3aed', color:'#c4b5fd' },
+  },
+  'deuteranopia': {
+    // green → sky-blue (#0ea5e9);  cyan → amber (#f5a428);  red → orange (#f08030)
+    sensor: '#0ea5e9', core0: '#4f8ef7', core1: '#9d4edd',
+    channel: '#f5a428', hardware: '#d97706', watchdog: '#7a8ca0', error: '#f08030',
+    fillMap: [
+      ['#0a2418','#061a28'], ['#122518','#081e30'],
+      ['#1a2340','#1a2340'], ['#0d1a2e','#0d1a2e'], ['#1e3a5f','#1e3a5f'],
+      ['#1e1040','#1a0a38'], ['#0d1828','#0a0a20'], ['#1a0d2e','#180c30'],
+      ['#0c2233','#1a1200'],
+      ['#1a110a','#1a110a'], ['#1f1a00','#1f1a00'], ['#160c00','#160c00'],
+      ['#1a1a1a','#181a20'], ['#111111','#111111'],
+      ['#3a1010','#261800'],
+    ],
+    lanes: [
+      { col:'rgba(79,142,247,0.05)',  str:'rgba(79,142,247,0.22)'  },
+      { col:'rgba(79,142,247,0.05)',  str:'rgba(79,142,247,0.22)'  },
+      { col:'rgba(157,78,237,0.05)', str:'rgba(157,78,237,0.22)'  },
+      { col:'rgba(245,164,40,0.07)', str:'rgba(245,164,40,0.28)'  },
+      { col:'rgba(217,119,6,0.06)',  str:'rgba(217,119,6,0.22)'   },
+    ],
+    legendColors: ['#4f8ef7','#9d4edd','#0ea5e9','#f5a428','#d97706'],
+    btnBack: { bg:'#1a0a38', border:'#9d4edd', color:'#d4b5ff' },
+  },
+  'high-contrast': {
+    sensor: '#00ff80', core0: '#60d0ff', core1: '#c090ff',
+    channel: '#00cfff', hardware: '#ffd000', watchdog: '#b0b0b0', error: '#ff6040',
+    fillMap: [
+      ['#0a2418','#001a08'], ['#122518','#002010'],
+      ['#1a2340','#001220'], ['#0d1a2e','#000a18'], ['#1e3a5f','#001230'],
+      ['#1e1040','#0a0020'], ['#0d1828','#050010'], ['#1a0d2e','#0c0020'],
+      ['#0c2233','#001a1a'],
+      ['#1a110a','#1a1000'], ['#1f1a00','#1a1200'], ['#160c00','#141000'],
+      ['#1a1a1a','#141414'], ['#111111','#0e0e0e'],
+      ['#3a1010','#200000'],
+    ],
+    lanes: [
+      { col:'rgba(96,208,255,0.06)',  str:'rgba(96,208,255,0.35)'  },
+      { col:'rgba(96,208,255,0.06)',  str:'rgba(96,208,255,0.35)'  },
+      { col:'rgba(192,144,255,0.06)', str:'rgba(192,144,255,0.35)' },
+      { col:'rgba(0,207,255,0.07)',   str:'rgba(0,207,255,0.40)'   },
+      { col:'rgba(255,208,0,0.06)',   str:'rgba(255,208,0,0.35)'   },
+    ],
+    legendColors: ['#60d0ff','#c090ff','#00ff80','#00cfff','#ffd000'],
+    btnBack: { bg:'#0a0020', border:'#c090ff', color:'#e0c8ff' },
+  },
+  'monochrome': {
+    sensor: '#a0a0a0', core0: '#c0c0c0', core1: '#b0b0b0',
+    channel: '#909090', hardware: '#d0d0c0', watchdog: '#787878', error: '#888888',
+    fillMap: [
+      ['#0a2418','#161616'], ['#122518','#181818'],
+      ['#1a2340','#1a1a20'], ['#0d1a2e','#141418'], ['#1e3a5f','#1a1a22'],
+      ['#1e1040','#1a1a1e'], ['#0d1828','#141414'], ['#1a0d2e','#191919'],
+      ['#0c2233','#141416'],
+      ['#1a110a','#1c1c1a'], ['#1f1a00','#1c1c16'], ['#160c00','#1a1816'],
+      ['#1a1a1a','#181818'], ['#111111','#121212'],
+      ['#3a1010','#1a1414'],
+    ],
+    lanes: [
+      { col:'rgba(160,160,160,0.05)', str:'rgba(160,160,160,0.20)' },
+      { col:'rgba(160,160,160,0.05)', str:'rgba(160,160,160,0.20)' },
+      { col:'rgba(130,130,130,0.05)', str:'rgba(130,130,130,0.20)' },
+      { col:'rgba(110,110,110,0.07)', str:'rgba(110,110,110,0.25)' },
+      { col:'rgba(180,180,160,0.06)', str:'rgba(180,180,160,0.20)' },
+    ],
+    legendColors: ['#c0c0c0','#b0b0b0','#a0a0a0','#909090','#d0d0c0'],
+    btnBack: { bg:'#1a1a1a', border:'#b0b0b0', color:'#d0d0d0' },
+  },
+};
+
+// References to swimlane SVG elements — populated below, consumed by applyFlowchartTheme
+const fwLaneEls = [];
+
+// ─── Swimlane Backgrounds ────────────────────────────────────────────────────
+const LANES = [
+  {label:'BOOT / INIT', x:437, y:130, w:270, h:120, col:'rgba(79,142,247,0.05)',  str:'rgba(79,142,247,0.22)' },
+  {label:'CORE 0',      x:-40, y:365, w:760, h:320, col:'rgba(79,142,247,0.05)',  str:'rgba(79,142,247,0.22)' },
+  {label:'CORE 1',      x:800, y:365, w:630, h:320, col:'rgba(124,58,237,0.05)', str:'rgba(124,58,237,0.22)' },
+  {label:'CHANNELS',   x:390, y:692, w:380, h:92,  col:'rgba(8,145,178,0.07)',   str:'rgba(8,145,178,0.28)'  },
+  {label:'HARDWARE',   x:-40, y:798, w:1470,h:112, col:'rgba(217,119,6,0.06)',   str:'rgba(217,119,6,0.22)'  },
+];
+const bgGroup = document.createElementNS('http://www.w3.org/2000/svg','g');
+LANES.forEach(l => {
+  const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('x',l.x); r.setAttribute('y',l.y);
+  r.setAttribute('width',l.w); r.setAttribute('height',l.h);
+  r.setAttribute('rx','14'); r.setAttribute('fill',l.col);
+  r.setAttribute('stroke',l.str); r.setAttribute('stroke-width','1');
+  bgGroup.appendChild(r);
+  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',l.x+12); t.setAttribute('y',l.y+18);
+  t.setAttribute('fill',l.str); t.setAttribute('font-size','10');
+  t.setAttribute('font-weight','700'); t.setAttribute('letter-spacing','0.1em');
+  t.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+  t.textContent=l.label; bgGroup.appendChild(t);
+  fwLaneEls.push({ rect: r, text: t });
+});
+world.appendChild(bgGroup);
+
+// ─── Edge Elements ───────────────────────────────────────────────────────────
+const edgeGroup = document.createElementNS('http://www.w3.org/2000/svg','g');
+const edgeMeta  = {};
+EDGES.forEach(e => {
+  const col=e.color||'#4f8ef7';
+  let mid='arr';
+  if(col==='#059669') mid='arr-green';
+  else if(col==='#7c3aed') mid='arr-purple';
+  else if(col==='#0891b2') mid='arr-cyan';
+  else if(col==='#d97706') mid='arr-amber';
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','edge');
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('stroke',col); path.setAttribute('stroke-width','1.5');
+  path.setAttribute('fill','none'); path.setAttribute('opacity','0.55');
+  path.setAttribute('marker-end',`url(#${mid})`);
+  g.appendChild(path);
+  let txt=null;
+  if(e.label){
+    txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('fill',col); txt.setAttribute('font-size','8');
+    txt.setAttribute('opacity','0.7'); txt.setAttribute('text-anchor','middle');
+    g.appendChild(txt);
+  }
+  edgeGroup.appendChild(g);
+  edgeMeta[`${e.from}→${e.to}`]={path,txt,g};
+});
+world.appendChild(edgeGroup);
+
+// ─── Node Elements ───────────────────────────────────────────────────────────
+const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg','g');
+NODES.forEach(n => {
+  const p=phys[n.id];
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','node');
+  g.setAttribute('data-node',n.id);
+  g.setAttribute('transform',`translate(${p.px},${p.py})`);
+  g.style.cursor='grab';
+  const hw=n.w/2, hh=n.h/2;
+  let shape;
+  if(n.shape==='stadium'){
+    shape=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    shape.setAttribute('x',-hw); shape.setAttribute('y',-hh);
+    shape.setAttribute('width',n.w); shape.setAttribute('height',n.h);
+    shape.setAttribute('rx',hh); shape.setAttribute('ry',hh);
+  } else if(n.shape==='hexagon'){
+    const pts=[[-hw+10,-hh],[hw-10,-hh],[hw,0],[hw-10,hh],[-hw+10,hh],[-hw,0]]
+      .map(v=>v.join(',')).join(' ');
+    shape=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    shape.setAttribute('points',pts);
+  } else {
+    shape=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    shape.setAttribute('x',-hw); shape.setAttribute('y',-hh);
+    shape.setAttribute('width',n.w); shape.setAttribute('height',n.h);
+    shape.setAttribute('rx','8'); shape.setAttribute('ry','8');
+  }
+  shape.setAttribute('fill',n.color); shape.setAttribute('stroke',n.stroke);
+  shape.setAttribute('stroke-width','1.5');
+  g.appendChild(shape);
+
+  const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+  lbl.setAttribute('x','0'); lbl.setAttribute('y',n.sub?'-6':'0');
+  lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('dominant-baseline','middle');
+  lbl.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+  lbl.setAttribute('font-size','11'); lbl.setAttribute('fill','white');
+  lbl.setAttribute('pointer-events','none');
+  lbl.textContent=n.label; g.appendChild(lbl);
+
+  if(n.sub){
+    const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
+    sub.setAttribute('x','0'); sub.setAttribute('y','8');
+    sub.setAttribute('text-anchor','middle'); sub.setAttribute('dominant-baseline','middle');
+    sub.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+    sub.setAttribute('font-size','9'); sub.setAttribute('fill','rgba(255,255,255,0.6)');
+    sub.setAttribute('pointer-events','none');
+    sub.textContent=n.sub; g.appendChild(sub);
+  }
+
+  // Drag + click (pointer capture keeps events on the node during drag)
+  g.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    p.pinned=true; p.vx=0; p.vy=0;
+    g.style.cursor='grabbing';
+    g.setPointerCapture(e.pointerId);
+    let dragMoved=false;
+    let lastW=screenToWorld(e.clientX,e.clientY);
+    function onMove(ev){
+      const w=screenToWorld(ev.clientX,ev.clientY);
+      const dx=w.x-lastW.x, dy=w.y-lastW.y;
+      if(Math.abs(dx)+Math.abs(dy)>1) dragMoved=true;
+      p.px+=dx; p.py+=dy; lastW=w;
+    }
+    function onUp(ev){
+      p.ax=p.px; p.ay=p.py; // anchor to dropped position — stops spring from pulling back
+      p.pinned=false;
+      p.vx=0; p.vy=0;
+      g.style.cursor='grab';
+      g.releasePointerCapture(ev.pointerId);
+      if(!dragMoved) handleNodeClick(n);
+      g.removeEventListener('pointermove',onMove);
+      g.removeEventListener('pointerup',onUp);
+    }
+    g.addEventListener('pointermove',onMove);
+    g.addEventListener('pointerup',onUp);
+  });
+
+  nodeGroup.appendChild(g);
+  p.el=g;
+});
+world.appendChild(nodeGroup);
+
+// ─── Edge Path Computation ───────────────────────────────────────────────────
+function borderPt(n, ps, toX, toY){
+  const dx=toX-ps.px, dy=toY-ps.py;
+  const hw=n.w/2+4, hh=n.h/2+4;
+  const ax=Math.abs(dx), ay=Math.abs(dy);
+  if(!ax&&!ay) return {x:ps.px,y:ps.py};
+  let fx,fy;
+  if(ax*hh>ay*hw){fx=dx>0?hw:-hw; fy=dy*hw/ax;}
+  else            {fy=dy>0?hh:-hh; fx=dx*hh/ay;}
+  return {x:ps.px+fx, y:ps.py+fy};
+}
+
+function updateEdges(){
+  EDGES.forEach(e => {
+    const fn_=NODES.find(n=>n.id===e.from), tn_=NODES.find(n=>n.id===e.to);
+    if(!fn_||!tn_) return;
+    const pf=phys[e.from], pt=phys[e.to];
+    const sp=borderPt(fn_,pf,pt.px,pt.py);
+    const ep=borderPt(tn_,pt,pf.px,pf.py);
+    const mx=(sp.x+ep.x)/2, my=(sp.y+ep.y)/2;
+    const ox=(ep.y-sp.y)*0.1, oy=-(ep.x-sp.x)*0.1;
+    const m=edgeMeta[`${e.from}→${e.to}`];
+    if(!m) return;
+    m.path.setAttribute('d',`M${sp.x},${sp.y} Q${mx+ox},${my+oy} ${ep.x},${ep.y}`);
+    if(m.txt){ m.txt.setAttribute('x',mx+ox*.5); m.txt.setAttribute('y',my+oy*.5-5); }
+  });
+}
+
+// ─── Physics Step ────────────────────────────────────────────────────────────
+function physicsStep(){
+  // Spring toward anchor
+  NODES.forEach(n => {
+    const s=phys[n.id];
+    if(s.pinned) return;
+    s.vx+=(s.ax-s.px)*SPRING_K;
+    s.vy+=(s.ay-s.py)*SPRING_K;
+  });
+  // Pairwise repulsion — nodes push apart when too close
+  for(let i=0;i<NODES.length;i++){
+    for(let j=i+1;j<NODES.length;j++){
+      const a=NODES[i], b=NODES[j];
+      const sa=phys[a.id], sb=phys[b.id];
+      const dx=sb.px-sa.px, dy=sb.py-sa.py;
+      const dist=Math.sqrt(dx*dx+dy*dy)||0.001;
+      const minD=(a.w/2+b.w/2+a.h/2+b.h/2)*0.5+30;
+      if(dist<minD*2.5){
+        const f=Math.min(REPULSION/(dist*dist),MAX_F);
+        const fx=dx/dist*f, fy=dy/dist*f;
+        if(!sa.pinned){sa.vx-=fx; sa.vy-=fy;}
+        if(!sb.pinned){sb.vx+=fx; sb.vy+=fy;}
+      }
+    }
+  }
+  // Integrate velocity + damping, update SVG transforms
+  NODES.forEach(n => {
+    const s=phys[n.id];
+    if(!s.pinned){ s.vx*=DAMPING; s.vy*=DAMPING; s.px+=s.vx; s.py+=s.vy; }
+    s.el.setAttribute('transform',`translate(${s.px},${s.py})`);
+  });
+  updateEdges();
+}
+
+// ─── Focus Mode ─────────────────────────────────────────────────────────────
+let focusedId = null;
+let focusRingEl = null;
+
+function isTaskNode(n){ return n.core >= 0; }
+
+function focusNeighbors(id){
+  const s=new Set([id]);
+  EDGES.forEach(e=>{ if(e.from===id) s.add(e.to); if(e.to===id) s.add(e.from); });
+  return s;
+}
+
+function enterFocus(n){
+  focusedId=n.id;
+  const vis=focusNeighbors(n.id);
+
+  // Fade irrelevant nodes
+  NODES.forEach(nd=>{
+    phys[nd.id].el.setAttribute('opacity', vis.has(nd.id)?'1':'0.06');
+    phys[nd.id].el.style.pointerEvents = vis.has(nd.id)?'':'none';
+  });
+
+  // Show only edges touching the focal node
+  EDGES.forEach(e=>{
+    const m=edgeMeta[`${e.from}→${e.to}`];
+    if(!m) return;
+    const show=(e.from===n.id||e.to===n.id);
+    m.g.setAttribute('opacity', show?'1':'0');
+    // Make visible edge labels bolder
+    if(show&&m.txt){ m.txt.setAttribute('font-size','9'); m.txt.setAttribute('opacity','1'); }
+  });
+
+  // Dashed focus ring drawn inside the focal node's group
+  if(focusRingEl) focusRingEl.remove();
+  focusRingEl=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  const hw=n.w/2+9, hh=n.h/2+9;
+  focusRingEl.setAttribute('x',-hw); focusRingEl.setAttribute('y',-hh);
+  focusRingEl.setAttribute('width',n.w+18); focusRingEl.setAttribute('height',n.h+18);
+  focusRingEl.setAttribute('rx','14'); focusRingEl.setAttribute('ry','14');
+  focusRingEl.setAttribute('fill','none');
+  focusRingEl.setAttribute('stroke',n.stroke);
+  focusRingEl.setAttribute('stroke-width','2');
+  focusRingEl.setAttribute('stroke-dasharray','6 3');
+  focusRingEl.setAttribute('opacity','0.9');
+  focusRingEl.setAttribute('pointer-events','none');
+  phys[n.id].el.insertBefore(focusRingEl, phys[n.id].el.firstChild);
+
+  document.getElementById('btn-back').style.display='';
+  openDetail(n);
+  centerOn(n.id);
+}
+
+function exitFocus(){
+  focusedId=null;
+  if(focusRingEl){ focusRingEl.remove(); focusRingEl=null; }
+  NODES.forEach(nd=>{
+    phys[nd.id].el.setAttribute('opacity','1');
+    phys[nd.id].el.style.pointerEvents='';
+  });
+  EDGES.forEach(e=>{
+    const m=edgeMeta[`${e.from}→${e.to}`];
+    if(m){ m.g.setAttribute('opacity','1'); if(m.txt){ m.txt.setAttribute('font-size','8'); m.txt.setAttribute('opacity','0.7'); } }
+  });
+  document.getElementById('btn-back').style.display='none';
+  document.getElementById('detail').style.display='none';
+}
+
+function centerOn(id){
+  const p=phys[id];
+  const rect=wrap.getBoundingClientRect();
+  scale=Math.min(1.8, Math.max(scale, 1.1));
+  panX=rect.width/2  - p.px*scale;
+  panY=rect.height/2 - p.py*scale;
+  applyTransform();
+}
+
+function handleNodeClick(n){
+  if(n.detail_graph){ openDetailGraph(n); return; }
+  if(focusedId){
+    if(n.id===focusedId){
+      const d=document.getElementById('detail');
+      if(d.style.display==='none') openDetail(n); else closeDetail();
+    } else if(isTaskNode(n)){
+      exitFocus(); enterFocus(n);
+    } else {
+      openDetail(n);
+    }
+  } else {
+    if(isTaskNode(n)) enterFocus(n); else openDetail(n);
+  }
+}
+
+// ─── Detail Graph Overlay ────────────────────────────────────────────────────
+function dgBorderPt(nd, tx, ty){
+  const cx=nd.cx, cy=nd.cy;
+  const dx=tx-cx, dy=ty-cy;
+  const hw=nd.w/2+3, hh=nd.h/2+3;
+  const ax=Math.abs(dx), ay=Math.abs(dy);
+  if(!ax&&!ay) return {x:cx,y:cy};
+  let fx,fy;
+  if(ax*hh>ay*hw){fx=dx>0?hw:-hw; fy=dy*hw/ax;}
+  else            {fy=dy>0?hh:-hh; fx=dx*hh/ay;}
+  return {x:cx+fx,y:cy+fy};
+}
+
+// Mutable node positions for current detail graph (updated on drag)
+let dgNodePos = {};
+let dgEdgeMeta = {};
+let dgCurrentDG = null;
+
+function dgBorderPtId(id, toX, toY){
+  const p=dgNodePos[id];
+  const dx=toX-p.cx, dy=toY-p.cy;
+  const hw=p.w/2+3, hh=p.h/2+3;
+  const ax=Math.abs(dx), ay=Math.abs(dy);
+  if(!ax&&!ay) return {x:p.cx,y:p.cy};
+  let fx,fy;
+  if(ax*hh>ay*hw){fx=dx>0?hw:-hw; fy=dy*hw/ax;}
+  else            {fy=dy>0?hh:-hh; fx=dx*hh/ay;}
+  return {x:p.cx+fx,y:p.cy+fy};
+}
+
+function dgUpdateAllEdges(){
+  if(!dgCurrentDG) return;
+  const vx0=dgCurrentDG._vx0, PAD=dgCurrentDG._PAD;
+  dgCurrentDG.edges.forEach(e=>{
+    const m=dgEdgeMeta[`${e.from}\u2192${e.to}`];
+    if(!m) return;
+    const fp=dgNodePos[e.from], tp=dgNodePos[e.to];
+    if(!fp||!tp) return;
+    if(e.loopback){
+      const lx=vx0-PAD+14;
+      const sp={x:fp.cx, y:fp.cy+fp.h/2};
+      const ep={x:tp.cx-tp.w/2, y:tp.cy};
+      m.path.setAttribute('d',`M${sp.x},${sp.y} L${sp.x},${sp.y+24} L${lx},${sp.y+24} L${lx},${ep.y} L${ep.x},${ep.y}`);
+      if(m.lbl){m.lbl.setAttribute('x',lx+5); m.lbl.setAttribute('y',(sp.y+ep.y)/2);}
+    } else {
+      const sp=dgBorderPtId(e.from,tp.cx,tp.cy);
+      const ep=dgBorderPtId(e.to,fp.cx,fp.cy);
+      const mx=(sp.x+ep.x)/2, my=(sp.y+ep.y)/2;
+      const ox=(ep.y-sp.y)*0.12, oy=-(ep.x-sp.x)*0.12;
+      m.path.setAttribute('d',`M${sp.x},${sp.y} Q${mx+ox},${my+oy} ${ep.x},${ep.y}`);
+      if(m.lbl){m.lbl.setAttribute('x',mx+ox*0.5); m.lbl.setAttribute('y',my+oy*0.5-6);}
+    }
+  });
+}
+
+function dgMarker(col){
+  if(col==='#0891b2') return 'url(#dg-arr-cyan)';
+  if(col==='#d97706') return 'url(#dg-arr-amber)';
+  if(col==='#64748b') return 'url(#dg-arr-gray)';
+  if(col==='#4f8ef7') return 'url(#dg-arr-blue)';
+  if(col==='#7c3aed') return 'url(#dg-arr-purple)';
+  if(col==='#dc2626') return 'url(#dg-arr-red)';
+  return 'url(#dg-arr)';
+}
+
+// ─── Detail Graph Pan / Zoom ─────────────────────────────────────────────────
+const dgSvgEl  = document.getElementById('task-detail-svg');
+const dgWorld  = document.getElementById('task-detail-world');
+const dgBody   = document.getElementById('task-detail-body');
+let dgScale=1, dgPanX=0, dgPanY=0;
+let dgPanning=false, dgLast={x:0,y:0}; // module-scope so node handler can reset them
+let _dgVB = {x:0,y:0,w:800,h:600}; // stored after renderDetailGraph sets viewBox
+
+function dgApplyTransform(){
+  dgWorld.setAttribute('transform',`translate(${dgPanX},${dgPanY}) scale(${dgScale})`);
+}
+function dgResetView(){
+  const vbStr=dgSvgEl.getAttribute('viewBox');
+  if(vbStr){
+    const [x,y,w,h]=vbStr.split(' ').map(Number);
+    _dgVB={x,y,w,h};
+  }
+  const r=dgBody.getBoundingClientRect();
+  dgScale=Math.min(r.width/_dgVB.w, r.height/_dgVB.h)*0.92;
+  dgPanX=r.width/2  - (_dgVB.x+_dgVB.w/2)*dgScale;
+  dgPanY=r.height/2 - (_dgVB.y+_dgVB.h/2)*dgScale;
+  // Remove static viewBox so our transform drives positioning
+  dgSvgEl.removeAttribute('viewBox');
+  dgApplyTransform();
+}
+function dgZoomIn()  { dgScale=Math.min(dgScale*1.2,8);   dgApplyTransform(); }
+function dgZoomOut() { dgScale=Math.max(dgScale/1.2,0.05); dgApplyTransform(); }
+
+function renderDetailGraph(n){
+  const dg=n.detail_graph;
+  const svgEl=document.getElementById('task-detail-svg');
+  const world=document.getElementById('task-detail-world');
+  while(world.firstChild) world.removeChild(world.firstChild);
+  dgEdgeMeta={};
+
+  // Header
+  document.getElementById('task-detail-title').textContent=n.title;
+  const b=document.getElementById('task-detail-badge');
+  b.textContent=n.badge; b.style.background=n.badgeColor; b.style.color='#fff';
+  document.getElementById('task-detail-sub').textContent=dg.title||'';
+
+  // ViewBox from node bounding box
+  let vx0=Infinity,vy0=Infinity,vx1=-Infinity,vy1=-Infinity;
+  dg.nodes.forEach(nd=>{
+    vx0=Math.min(vx0,nd.cx-nd.w/2); vy0=Math.min(vy0,nd.cy-nd.h/2);
+    vx1=Math.max(vx1,nd.cx+nd.w/2); vy1=Math.max(vy1,nd.cy+nd.h/2);
+  });
+  const PAD=55;
+  svgEl.setAttribute('viewBox',`${vx0-PAD} ${vy0-PAD} ${vx1-vx0+PAD*2} ${vy1-vy0+PAD*2}`);
+  const ns='http://www.w3.org/2000/svg';
+
+  // Build mutable position store
+  dgNodePos={};
+  dg.nodes.forEach(nd=>{ dgNodePos[nd.id]={cx:nd.cx,cy:nd.cy,w:nd.w,h:nd.h,shape:nd.shape}; });
+  dg._vx0=vx0; dg._PAD=PAD;
+  dgCurrentDG=dg;
+
+  // Section backgrounds
+  (dg.sections||[]).forEach(s=>{
+    const r=document.createElementNS(ns,'rect');
+    r.setAttribute('x',s.x1); r.setAttribute('y',s.y1);
+    r.setAttribute('width',s.x2-s.x1); r.setAttribute('height',s.y2-s.y1);
+    r.setAttribute('rx','12'); r.setAttribute('fill',s.color);
+    r.setAttribute('stroke',s.stroke); r.setAttribute('stroke-width','1');
+    world.appendChild(r);
+    const t=document.createElementNS(ns,'text');
+    t.setAttribute('x',s.x1+10); t.setAttribute('y',s.y1+15);
+    t.setAttribute('fill',s.stroke); t.setAttribute('font-size','9');
+    t.setAttribute('font-weight','700'); t.setAttribute('letter-spacing','0.1em');
+    t.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+    t.textContent=s.label; world.appendChild(t);
+  });
+
+  // Edge layer (behind nodes)
+  const edgeLayer=document.createElementNS(ns,'g');
+  world.appendChild(edgeLayer);
+
+  dg.edges.forEach(e=>{
+    const col=e.color||'#059669';
+    const fp=dgNodePos[e.from], tp=dgNodePos[e.to];
+    if(!fp||!tp) return;
+    const g=document.createElementNS(ns,'g');
+    const path=document.createElementNS(ns,'path');
+    path.setAttribute('fill','none');
+    let lbl=null;
+    if(e.loopback){
+      const lx=vx0-PAD+14;
+      const sp={x:fp.cx,y:fp.cy+fp.h/2};
+      const ep={x:tp.cx-tp.w/2,y:tp.cy};
+      path.setAttribute('d',`M${sp.x},${sp.y} L${sp.x},${sp.y+24} L${lx},${sp.y+24} L${lx},${ep.y} L${ep.x},${ep.y}`);
+      path.setAttribute('stroke',col); path.setAttribute('stroke-width','2');
+      path.setAttribute('stroke-dasharray','7 3'); path.setAttribute('opacity','0.65');
+      path.setAttribute('marker-end',dgMarker(col));
+      g.appendChild(path);
+      if(e.label){
+        lbl=document.createElementNS(ns,'text');
+        lbl.setAttribute('x',lx+5); lbl.setAttribute('y',(sp.y+ep.y)/2);
+        lbl.setAttribute('fill',col); lbl.setAttribute('font-size','8');
+        lbl.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+        lbl.textContent=e.label; g.appendChild(lbl);
+      }
+    } else {
+      const sp=dgBorderPtId(e.from,tp.cx,tp.cy);
+      const ep=dgBorderPtId(e.to,fp.cx,fp.cy);
+      const mx=(sp.x+ep.x)/2,my=(sp.y+ep.y)/2;
+      const ox=(ep.y-sp.y)*0.12,oy=-(ep.x-sp.x)*0.12;
+      path.setAttribute('d',`M${sp.x},${sp.y} Q${mx+ox},${my+oy} ${ep.x},${ep.y}`);
+      path.setAttribute('stroke',col); path.setAttribute('stroke-width','1.5');
+      path.setAttribute('opacity','0.8'); path.setAttribute('marker-end',dgMarker(col));
+      g.appendChild(path);
+      if(e.label){
+        lbl=document.createElementNS(ns,'text');
+        lbl.setAttribute('x',mx+ox*0.5); lbl.setAttribute('y',my+oy*0.5-6);
+        lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('fill',col);
+        lbl.setAttribute('font-size','8.5'); lbl.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+        lbl.textContent=e.label; g.appendChild(lbl);
+      }
+    }
+    edgeLayer.appendChild(g);
+    dgEdgeMeta[`${e.from}\u2192${e.to}`]={path,lbl};
+  });
+
+  // Node layer — each node is a translated <g> so dragging just updates transform
+  dg.nodes.forEach(nd=>{
+    const hw=nd.w/2, hh=nd.h/2;
+    const g=document.createElementNS(ns,'g');
+    g.setAttribute('transform',`translate(${nd.cx},${nd.cy})`);
+    g.setAttribute('cursor','grab');
+    g.setAttribute('data-dg-node','1');
+    g.setAttribute('style','will-change:transform');
+
+    let shape;
+    if(nd.shape==='stadium'){
+      shape=document.createElementNS(ns,'rect');
+      shape.setAttribute('x',-hw); shape.setAttribute('y',-hh);
+      shape.setAttribute('width',nd.w); shape.setAttribute('height',nd.h);
+      shape.setAttribute('rx',hh);
+    } else if(nd.shape==='hexagon'){
+      const pts=[[-hw+10,-hh],[hw-10,-hh],[hw,0],[hw-10,hh],[-hw+10,hh],[-hw,0]]
+        .map(v=>v[0]+','+v[1]).join(' ');
+      shape=document.createElementNS(ns,'polygon');
+      shape.setAttribute('points',pts);
+    } else {
+      shape=document.createElementNS(ns,'rect');
+      shape.setAttribute('x',-hw); shape.setAttribute('y',-hh);
+      shape.setAttribute('width',nd.w); shape.setAttribute('height',nd.h);
+      shape.setAttribute('rx','8');
+    }
+    shape.setAttribute('fill',nd.color||'#0a2418');
+    shape.setAttribute('stroke',nd.stroke||'#059669');
+    shape.setAttribute('stroke-width','1.5');
+    if(nd.ext){ shape.setAttribute('stroke-dasharray','5 3'); shape.setAttribute('opacity','0.9'); }
+    g.appendChild(shape);
+
+    const lbl=document.createElementNS(ns,'text');
+    lbl.setAttribute('x','0'); lbl.setAttribute('y',nd.sub?'-7':'0');
+    lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('dominant-baseline','middle');
+    lbl.setAttribute('font-size','11'); lbl.setAttribute('fill','white');
+    lbl.setAttribute('pointer-events','none');
+    lbl.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+    lbl.textContent=nd.label; g.appendChild(lbl);
+
+    if(nd.sub){
+      const sub=document.createElementNS(ns,'text');
+      sub.setAttribute('x','0'); sub.setAttribute('y','8');
+      sub.setAttribute('text-anchor','middle'); sub.setAttribute('dominant-baseline','middle');
+      sub.setAttribute('font-size','8'); sub.setAttribute('fill','rgba(255,255,255,0.5)');
+      sub.setAttribute('pointer-events','none');
+      sub.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+      sub.textContent=nd.sub; g.appendChild(sub);
+    }
+
+    if(nd.ext){
+      const badge=document.createElementNS(ns,'text');
+      badge.setAttribute('x','0'); badge.setAttribute('y',(-hh-5)+'');
+      badge.setAttribute('text-anchor','middle'); badge.setAttribute('font-size','7.5');
+      badge.setAttribute('fill',nd.stroke); badge.setAttribute('font-weight','700');
+      badge.setAttribute('letter-spacing','0.08em');
+      badge.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+      badge.setAttribute('pointer-events','none');
+      badge.textContent='EXTERNAL'; g.appendChild(badge);
+    }
+
+    // ── Drag — node signals body via dgDragNode ──
+    g.addEventListener('pointerdown', e=>{
+      e.stopPropagation();
+      e.preventDefault();
+      dgPanning = false;      // cancel any in-flight pan
+      dgDragNode={id:nd.id, g, lastX:e.clientX, lastY:e.clientY};
+      dgBody.setPointerCapture(e.pointerId);
+      g.setAttribute('cursor','grabbing');
+    });
+
+    world.appendChild(g);
+  });
+}
+
+let dgDragNode = null; // { id, g, lastX, lastY } — set by node pointerdown
+
+function openDetailGraph(n){
+  // Hoist #task-detail to <body> so position:fixed is relative to the viewport,
+  // not to .manual-sheet which has backdrop-filter (creates a new containing block).
+  const taskDetail = document.getElementById('task-detail');
+  if (taskDetail.parentNode !== document.body) {
+    document.body.appendChild(taskDetail);
+  }
+  renderDetailGraph(n);
+  taskDetail.classList.add('active');
+  dgResetView();
+  // Wire all pointer + wheel events once
+  if(!dgBody._dgEventsAttached){
+    dgBody._dgEventsAttached = true;
+
+    dgBody.addEventListener('pointerdown', e=>{
+      if(dgDragNode) return;  // a node already claimed this pointer
+      e.preventDefault();
+      dgPanning=true; dgLast={x:e.clientX,y:e.clientY};
+      dgBody.classList.add('grabbing');
+      dgBody.setPointerCapture(e.pointerId);
+    });
+
+    dgBody.addEventListener('pointermove', e=>{
+      if(dgDragNode){
+        const dx=(e.clientX-dgDragNode.lastX)/dgScale;
+        const dy=(e.clientY-dgDragNode.lastY)/dgScale;
+        dgDragNode.lastX=e.clientX; dgDragNode.lastY=e.clientY;
+        const p=dgNodePos[dgDragNode.id];
+        p.cx+=dx; p.cy+=dy;
+        dgDragNode.g.setAttribute('transform',`translate(${p.cx},${p.cy})`);
+        dgUpdateAllEdges();
+        return;
+      }
+      if(!dgPanning) return;
+      dgPanX+=e.clientX-dgLast.x; dgPanY+=e.clientY-dgLast.y;
+      dgLast={x:e.clientX,y:e.clientY};
+      dgApplyTransform();
+    });
+
+    const dgEndInteraction = ()=>{
+      if(dgDragNode){ dgDragNode.g.setAttribute('cursor','grab'); dgDragNode=null; }
+      dgPanning=false;
+      dgBody.classList.remove('grabbing');
+    };
+    dgBody.addEventListener('pointerup',     dgEndInteraction);
+    dgBody.addEventListener('pointercancel', dgEndInteraction);
+
+    dgBody.addEventListener('wheel', e=>{
+      e.preventDefault();
+      const r=dgBody.getBoundingClientRect();
+      const mx=e.clientX-r.left, my=e.clientY-r.top;
+      const f=e.deltaY<0?1.12:1/1.12;
+      const ns=Math.max(0.1,Math.min(8,dgScale*f));
+      dgPanX=mx-(mx-dgPanX)*(ns/dgScale);
+      dgPanY=my-(my-dgPanY)*(ns/dgScale);
+      dgScale=ns; dgApplyTransform();
+    },{passive:false});
+  }
+}
+function closeDetailGraph(){
+  document.getElementById('task-detail').classList.remove('active');
+}
+
+// ─── Detail Panel ────────────────────────────────────────────────────────────
+function openDetail(n){
+  document.getElementById('detail').style.display='block';
+  document.getElementById('d-title').textContent=n.title;
+  const badge=document.getElementById('d-badge');
+  badge.textContent=n.badge; badge.style.background=n.badgeColor; badge.style.color='#fff';
+  document.getElementById('d-desc').textContent=n.desc;
+  const extra=document.getElementById('d-extra');
+  extra.innerHTML='';
+
+  // Steps — numbered execution flow from source
+  if(n.steps&&n.steps.length){
+    const sec=document.createElement('div'); sec.style.marginTop='10px';
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-size:0.68rem;color:#64748b;margin-bottom:5px;font-weight:700;letter-spacing:0.07em';
+    lbl.textContent='EXECUTION FLOW';
+    sec.appendChild(lbl);
+    const ol=document.createElement('ol');
+    ol.style.cssText='font-size:0.75rem;color:#94a3b8;padding-left:0;list-style:none;margin:0';
+    n.steps.forEach(s=>{
+      const li=document.createElement('li');
+      li.style.cssText='padding:2px 0 2px 0;white-space:pre-wrap;font-family:monospace;font-size:0.72rem;border-left:2px solid '+n.stroke+';padding-left:6px;margin-bottom:3px;color:#cbd5e1';
+      li.textContent=s;
+      ol.appendChild(li);
+    });
+    sec.appendChild(ol);
+    extra.appendChild(sec);
+  }
+
+  // In focus mode, list connected nodes
+  if(focusedId===n.id){
+    const connEl=document.createElement('div');
+    connEl.style.marginTop='10px';
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-size:0.68rem;color:#64748b;margin-bottom:4px;font-weight:700;letter-spacing:0.07em';
+    lbl.textContent='CONNECTED TO';
+    connEl.appendChild(lbl);
+    EDGES.forEach(e=>{
+      const otherId=(e.from===n.id)?e.to:(e.to===n.id)?e.from:null;
+      if(!otherId) return;
+      const other=NODES.find(x=>x.id===otherId);
+      if(!other) return;
+      const chip=document.createElement('span');
+      chip.className='chip';
+      chip.style.cssText+=`;border-color:${other.stroke};cursor:pointer`;
+      const dir=e.from===n.id?'→':'←';
+      chip.textContent=`${dir} ${other.label}${e.label?' ('+e.label+')':''}`;
+      chip.addEventListener('click',()=>{ if(isTaskNode(other)){exitFocus();enterFocus(other);}else openDetail(other); });
+      connEl.appendChild(chip);
+    });
+    extra.appendChild(connEl);
+  }
+
+  if(n.extra&&n.extra.length){
+    const sec=document.createElement('div'); sec.style.marginTop='10px';
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-size:0.68rem;color:#64748b;margin-bottom:4px;font-weight:700;letter-spacing:0.07em';
+    lbl.textContent='DETAILS';
+    sec.appendChild(lbl);
+    const ul=document.createElement('ul'); ul.style.cssText='font-size:0.78rem;color:#94a3b8;padding-left:16px;line-height:1.7;margin:0';
+    n.extra.forEach(item=>{ const li=document.createElement('li'); li.textContent=item; ul.appendChild(li); });
+    sec.appendChild(ul);
+    extra.appendChild(sec);
+  }
+}
+function closeDetail(){ document.getElementById('detail').style.display='none'; }
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', resetView);
+resetView();
+requestAnimationFrame(function loop(){ physicsStep(); requestAnimationFrame(loop); });
+
+// ─── Theme integration ───────────────────────────────────────────────────────
+function applyFlowchartTheme(theme) {
+  const themeVars = {
+    'default':       { bg:'#0f1117', surface:'#1a1d27', surface2:'#22263a', border:'#2e3352', text:'#e2e8f0', muted:'#64748b', fwBorder:'rgba(79,142,247,0.22)'   },
+    'deuteranopia':  { bg:'#0a0f1a', surface:'#162032', surface2:'#1e2d46', border:'#2a3d5e', text:'#e8edf5', muted:'#7a8ca0', fwBorder:'rgba(79,142,247,0.22)'   },
+    'high-contrast': { bg:'#000000', surface:'#0d1117', surface2:'#161b22', border:'#58a6ff', text:'#ffffff',  muted:'#9aa5b4', fwBorder:'rgba(96,208,255,0.40)'   },
+    'monochrome':    { bg:'#101010', surface:'#1a1a1a', surface2:'#242424', border:'#3a3a3a', text:'#e0e0e0',  muted:'#808080', fwBorder:'rgba(160,160,160,0.22)'  },
+  };
+  const t = themeVars[theme] || themeVars['default'];
+  const a = THEME_ACCENTS[theme] || THEME_ACCENTS['default'];
+  const def = THEME_ACCENTS['default'];
+
+  // ── CSS variables for shell / chrome elements that use var() ──
+  const fw = document.getElementById('fw');
+  if (fw) {
+    fw.style.setProperty('--bg',       t.bg);
+    fw.style.setProperty('--surface',  t.surface);
+    fw.style.setProperty('--surface2', t.surface2);
+    fw.style.setProperty('--border',   t.border);
+    fw.style.setProperty('--text',     t.text);
+    fw.style.setProperty('--muted',    t.muted);
+    fw.style.borderColor = t.fwBorder;
+  }
+
+  // ── Dynamic CSS: override SVG presentation-attribute colours ──────────────
+  // CSS fill/stroke properties take priority over SVG presentation attributes
+  // without !important, so we can safely remap by attribute-selector rules.
+  const scopes = ['#fw', '#task-detail-svg'];
+  const rules = [];
+
+  // Accent stroke pairs (also covers arrowhead marker fills that share the same value)
+  const strokePairs = [
+    [def.sensor,   a.sensor],
+    [def.core0,    a.core0],
+    [def.core1,    a.core1],
+    [def.channel,  a.channel],
+    [def.hardware, a.hardware],
+    [def.watchdog, a.watchdog],
+    [def.error,    a.error],
+  ];
+  strokePairs.forEach(([from, to]) => {
+    if (from === to) return;
+    scopes.forEach(s => {
+      rules.push(`${s} [stroke="${from}"] { stroke: ${to}; }`);
+      // Marker arrowheads use fill="<accent>" — remap those too
+      rules.push(`${s} [fill="${from}"] { fill: ${to}; }`);
+    });
+  });
+
+  // Node background fill pairs (dark tint colours behind each accent family)
+  a.fillMap.forEach(([from, to]) => {
+    if (from === to) return;
+    scopes.forEach(s => {
+      rules.push(`${s} [fill="${from}"] { fill: ${to}; }`);
+    });
+  });
+
+  let dynStyle = document.getElementById('fw-dyn-theme');
+  if (!dynStyle) {
+    dynStyle = document.createElement('style');
+    dynStyle.id = 'fw-dyn-theme';
+    document.head.appendChild(dynStyle);
+  }
+  dynStyle.textContent = rules.join('\n');
+
+  // ── Swimlane backgrounds (rgba fills — not targetable by attribute selector) ──
+  fwLaneEls.forEach((pair, i) => {
+    const lc = a.lanes[i];
+    if (!lc || !pair) return;
+    pair.rect.setAttribute('fill',   lc.col);
+    pair.rect.setAttribute('stroke', lc.str);
+    pair.text.setAttribute('fill',   lc.str);
+  });
+
+  // ── Legend colour dots ──
+  document.querySelectorAll('#fw .legend-dot').forEach((dot, i) => {
+    if (a.legendColors[i]) dot.style.background = a.legendColors[i];
+  });
+
+  // ── "← Back to Overview" button (inline-styled; update colours in place) ──
+  const btnBack = document.getElementById('btn-back');
+  if (btnBack) {
+    btnBack.style.background   = a.btnBack.bg;
+    btnBack.style.borderColor  = a.btnBack.border;
+    btnBack.style.color        = a.btnBack.color;
+  }
+}
+// Listen for site-wide theme changes
+document.addEventListener('kiwi-theme', e => applyFlowchartTheme(e.detail));
+// Apply current theme on load
+try { applyFlowchartTheme(localStorage.getItem('kiwi-color-theme') || 'default'); } catch(_) {}
+
+// Close detail panels with Escape key
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const td = document.getElementById('task-detail');
+  if (td && td.classList.contains('active')) { closeDetailGraph(); return; }
+  const d = document.getElementById('detail');
+  if (d && d.style.display !== 'none') { closeDetail(); }
+});
+</script>
+
+<section class="manual-sheet" id="references">
+
+  <h1 id="references">References</h1>
+
+  <ol class="references-list" id="references-list"></ol>
+
+</section>
+
+<nav class="anchor-nav" aria-label="Section navigation">
+  <button type="button" class="anchor-nav__btn anchor-nav__btn--prev" id="anchor-prev" aria-label="Go to previous section">
+    <span class="anchor-nav__icon" aria-hidden="true">◀</span>
+    <span class="anchor-nav__label">Previous section</span>
+  </button>
+  <button type="button" class="anchor-nav__btn anchor-nav__btn--next" id="anchor-next" aria-label="Go to next section">
+    <span class="anchor-nav__label">Next section</span>
+    <span class="anchor-nav__icon" aria-hidden="true">▶</span>
+  </button>
+</nav>
+
+
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <span class="site-footer-owner">
+            <a href="https://github.com/chickadee/kiwi-firmware-template">kiwi-firmware</a>
+            
+            is maintained by
+            <a href="mailto:sunipkmukherjee@gmail.com">Chickadee</a>.
+            
+          </span>
+          
+          <span class="site-footer-contact">
+            Contact us: <a href="mailto:sunipkmukherjee@gmail.com">sunipkmukherjee@gmail.com</a>
+          </span>
+          
+          <div class="version-selector" aria-label="Documentation version selector">
+  <label class="version-selector__label" for="version-select">Version</label>
+  <select id="version-select" class="version-selector__select">
+    <option value="" disabled selected>Loading versions...</option>
+  </select>
+</div>
+
+<script>
+(function () {
+  var baseurl = '/kiwi-firmware/v0.0.1-pre0';
+  var parts = baseurl.split('/').filter(Boolean);
+  var current = parts.length ? parts[parts.length - 1] : 'latest';
+  var docsRoot = parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : (parts.length === 1 ? '/' + parts[0] : '');
+  var versionsUrl = (docsRoot || '') + '/versions.json';
+
+  function targetUrl(version) {
+    var root = docsRoot || '';
+    return root + '/' + version + '/';
+  }
+
+  fetch(versionsUrl)
+    .then(function (res) {
+      return res.ok ? res.json() : [];
+    })
+    .catch(function () {
+      return [];
+    })
+    .then(function (versions) {
+      var select = document.getElementById('version-select');
+      if (!select || !Array.isArray(versions) || !versions.length) {
+        return;
+      }
+
+      select.innerHTML = '';
+      versions.forEach(function (v, i) {
+        var option = document.createElement('option');
+        option.value = v;
+        option.textContent = i === 0 ? v + ' (latest)' : v;
+        option.selected = (v === current);
+        select.appendChild(option);
+      });
+
+      if (!versions.includes(current)) {
+        select.selectedIndex = 0;
+      }
+
+      select.addEventListener('change', function () {
+        window.location.href = targetUrl(select.value) + window.location.hash;
+      });
+    });
+})();
+</script>
+
+          <span class="site-footer-credits">Generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+        </div>
+      </footer>
+    </main>
+    <aside class="theme-switcher" id="theme-switcher">
+  <button class="theme-switcher__toggle" id="theme-toggle"
+          aria-haspopup="true" aria-expanded="false" aria-controls="theme-panel"
+          aria-label="Color theme">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5
+               0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16
+               c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5
+               S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5
+               S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5
+               S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5
+               S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </svg>
+  </button>
+
+  <div class="theme-switcher__panel" id="theme-panel" hidden role="group" aria-label="Select color theme">
+    <p class="theme-switcher__heading">Color theme</p>
+
+    <button class="theme-opt" data-theme="default" aria-pressed="true">
+      <span class="theme-opt__dot" style="background:#0e3247;box-shadow:0 0 0 2px #7fd4f0"></span>
+      Default
+    </button>
+    <button class="theme-opt" data-theme="deuteranopia" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#0d2c52;box-shadow:0 0 0 2px #f5a428"></span>
+      Deuteranopia-friendly
+    </button>
+    <button class="theme-opt" data-theme="high-contrast" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#000;box-shadow:0 0 0 2px #ffff00"></span>
+      High Contrast
+    </button>
+    <button class="theme-opt" data-theme="monochrome" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#1e1e1e;box-shadow:0 0 0 2px #d0d0d0"></span>
+      Monochrome
+    </button>
+  </div>
+
+  <div aria-live="polite" aria-atomic="true" class="theme-switcher__announce" id="theme-announce"></div>
+</aside>
+
+<script>
+(function () {
+  var PREF_KEY = 'kiwi-color-theme';
+  var labels = {
+    'default': 'Default',
+    'deuteranopia': 'Deuteranopia-friendly',
+    'high-contrast': 'High Contrast',
+    'monochrome': 'Monochrome'
+  };
+
+  var root    = document.documentElement;
+  var toggle  = document.getElementById('theme-toggle');
+  var panel   = document.getElementById('theme-panel');
+  var opts    = document.querySelectorAll('.theme-opt');
+  var announce = document.getElementById('theme-announce');
+
+  function applyTheme(theme, shouldAnnounce) {
+    if (theme && theme !== 'default') {
+      root.dataset.theme = theme;
+    } else {
+      delete root.dataset.theme;
+      theme = 'default';
+    }
+    opts.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.theme === theme));
+    });
+    if (shouldAnnounce && announce) {
+      announce.textContent = '';
+      // Force re-announcement with a slight delay
+      setTimeout(function () {
+        announce.textContent = 'Color theme changed to ' + (labels[theme] || theme);
+      }, 50);
+    }
+    try { localStorage.setItem(PREF_KEY, theme); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('kiwi-theme', { detail: theme }));
+  }
+
+  // Sync button states with whatever theme was applied by the anti-FOUC script
+  var saved;
+  try { saved = localStorage.getItem(PREF_KEY) || 'default'; } catch (e) { saved = 'default'; }
+  applyTheme(saved, false);
+
+  // Toggle panel open/close
+  toggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var opening = panel.hidden;
+    panel.hidden = !opening;
+    toggle.setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      // Focus first option when opening
+      var first = panel.querySelector('.theme-opt');
+      if (first) first.focus();
+    }
+  });
+
+  // Option selection
+  opts.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyTheme(btn.dataset.theme, true);
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    });
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function (e) {
+    var sw = document.getElementById('theme-switcher');
+    if (sw && !sw.contains(e.target)) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !panel.hidden) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    }
+  });
+})();
+</script>
+
+  </body>
+</html>

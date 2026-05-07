@@ -1,0 +1,422 @@
+<section class="manual-sheet" id="repository" markdown="1">
+
+# Repository Structure
+
+  <p>The <code>kiwi-firmware</code> repository is a <strong>Cargo workspace</strong>.
+     Click a <strong>directory</strong> to expand or collapse it;
+     click a <strong>file</strong> to read what it does.</p>
+
+  <div class="repo-widget">
+    <div class="repo-tree-col">
+      <div class="repo-root-label">
+        <svg class="repo-svg-icon repo-svg-icon--dir" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1z"/></svg>
+        kiwi-firmware<span style="opacity:0.45">/</span>
+      </div>
+      <ul class="repo-tree" id="repoTree" role="tree" aria-label="Repository file tree"></ul>
+    </div>
+
+    <div class="repo-info" id="repoInfo" aria-live="polite" aria-atomic="true">
+      <p class="repo-info__hint">Click any entry in the tree.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+/* ── Repo widget ──────────────────────────────────────────────────── */
+.repo-widget {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  align-items: start;
+}
+@media (min-width: 620px) {
+  .repo-widget {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+}
+
+/* Root label */
+.repo-root-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e8f7fd;
+  padding: 0.2rem 0.45rem 0.3rem;
+  border-bottom: 1px solid rgba(199,235,248,0.1);
+  margin-bottom: 0.3rem;
+}
+
+/* SVG icons */
+.repo-svg-icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.repo-svg-icon--dir  { color: #7ebde8; }
+.repo-svg-icon--file { color: rgba(199,235,248,0.44); }
+
+/* Tree list */
+.repo-tree,
+.repo-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.repo-tree {
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.875rem;
+}
+.repo-tree ul {
+  padding-left: 1rem;
+  border-left: 1px solid rgba(199,235,248,0.12);
+  margin-left: 0.65rem;
+}
+
+/* Node button */
+.repo-node {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  background: none;
+  border: none;
+  color: rgba(220,243,252,0.78);
+  font: inherit;
+  text-align: left;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 110ms ease, color 110ms ease;
+}
+.repo-node:hover {
+  background: rgba(199,235,248,0.09);
+  color: #e8f7fd;
+}
+.repo-node--active {
+  background: rgba(127,212,240,0.14) !important;
+  color: #7fd4f0 !important;
+}
+.repo-node--active .repo-svg-icon--dir,
+.repo-node--active .repo-svg-icon--file { color: #7fd4f0; }
+.repo-node--dir {
+  font-weight: 600;
+  color: rgba(220,243,252,0.94);
+}
+
+/* Chevron */
+.repo-chevron {
+  display: inline-block;
+  font-size: 0.58em;
+  width: 0.85em;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.45;
+  transition: transform 170ms ease, opacity 170ms ease;
+}
+.repo-node--dir:hover .repo-chevron,
+.repo-node--dir.repo-node--active .repo-chevron { opacity: 0.75; }
+.repo-node--open .repo-chevron {
+  transform: rotate(90deg);
+  opacity: 0.75;
+}
+
+/* Children slide */
+.repo-children {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 190ms ease;
+  overflow: hidden;
+}
+.repo-children--open { grid-template-rows: 1fr; }
+.repo-children > ul  { min-height: 0; }
+
+/* Info panel */
+.repo-info {
+  background: rgba(199,235,248,0.055);
+  border: 1px solid rgba(199,235,248,0.13);
+  border-radius: 0.85rem;
+  padding: 1rem 1.15rem;
+  min-height: 6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+}
+@media (min-width: 620px) {
+  .repo-info { position: sticky; top: 1.5rem; }
+}
+.repo-info__hint {
+  margin: 0;
+  color: rgba(220,243,252,0.35);
+  font-style: italic;
+  font-size: 0.875rem;
+  text-align: center;
+}
+.repo-info__name {
+  margin: 0;
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e8f7fd;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  word-break: break-all;
+}
+.repo-info__badge {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.12em 0.5em;
+  border-radius: 999px;
+  color: #fff;
+  flex-shrink: 0;
+  align-self: center;
+}
+.repo-info__badge--dir  { background: #2a6a8a; }
+.repo-info__badge--file { background: #1e5c42; }
+.repo-info__desc {
+  margin: 0;
+  color: rgba(220,243,252,0.84);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+</style>
+
+<script>
+(function () {
+  /* ── Tree data ─────────────────────────────────────────────────── */
+  var T = [
+    { n:"Cargo.toml",   t:"f", d:"Workspace manifest. Lists all member crates and pins shared dependency versions so every driver crate uses the same embedded-hal and defmt releases." },
+    { n:"Cargo.lock",   t:"f", d:"Auto-generated lockfile that pins every transitive dependency to a specific version. Committed to the repository to guarantee reproducible builds." },
+    { n:"CHANGELOG.md", t:"f", d:"Release notes and version history, following the Keep a Changelog convention." },
+    { n:"LICENSE",      t:"f", d:"Project licence." },
+    { n:"README.md",    t:"f", d:"Quick-start reference covering the repository layout, sensor feature flags, and build commands." },
+    { n:"setup.sh",     t:"f", d:"Linux and macOS setup script. Installs rustup, the Rust stable toolchain, the thumbv8m.main-none-eabihf cross-compilation target, probe-rs, and (on Linux) udev rules." },
+    { n:"setup.ps1",    t:"f", d:"Windows PowerShell setup script. Installs MSVC C++ Build Tools, rustup, the Rust stable toolchain, the thumbv8m.main-none-eabihf cross-compilation target, and probe-rs." },
+    { n:"config/", t:"d", d:"Linker configuration. Contains the memory map template consumed by the firmware build script.",
+      c:[
+        { n:"memory.x.template", t:"f", d:"Linker memory-map template for the RP2350B. Defines the FLASH origin (0x10000000) and size, and the RAM origin and size. Copied into the linker search path by firmware/build.rs at compile time." },
+      ]
+    },
+    { n:"cyw43-firmware/", t:"d", d:"CYW43439 Wi-Fi chip firmware blobs required at link time. The blobs initialise the radio hardware and are distributed under the permissive binary licence included in this directory.",
+      c:[
+        { n:"LICENSE-permissive-binary-license-1.0.txt", t:"f", d:"Permissive binary licence covering the CYW43439 firmware blobs." },
+        { n:"README.md", t:"f", d:"Notes on the CYW43439 firmware blobs and their licence." },
+      ]
+    },
+    { n:"device-blob/", t:"d", d:"The device-blob crate — a no_std library that provides typed, compile-time access to flash-stored device configuration and firmware blobs.",
+      c:[
+        { n:"Cargo.toml", t:"f", d:"Crate manifest for device-blob. Declares it as a no_std library crate." },
+        { n:"README.md",  t:"f", d:"Usage notes for the device-blob crate." },
+        { n:"src/", t:"d", d:"Source files for the device-blob crate.",
+          c:[
+            { n:"lib.rs", t:"f", d:"Public API. Exposes typed references to flash regions holding device configuration and firmware blobs." },
+          ]
+        },
+      ]
+    },
+    { n:"drivers/", t:"d", d:"Collection of no_std sensor driver crates. Each driver is a standalone library with both blocking and async APIs, independently usable in derived projects.",
+      c:[
+        { n:"bme680-rs/", t:"d", d:"no_std driver for the BME680 environmental sensor — measures temperature, pressure, relative humidity, and gas resistance (used for IAQ index).",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for bme680-rs." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the BME680 driver." },
+            { n:"src/", t:"d", d:"BME680 driver source files.",
+              c:[
+                { n:"interface.rs", t:"f", d:"Hardware interface abstraction — wraps embedded-hal SPI or I2C peripherals to provide a unified register read/write API." },
+                { n:"lib.rs",       t:"f", d:"Public driver API: sensor initialisation, oversampling and filter configuration, and triggered measurement." },
+                { n:"registers.rs", t:"f", d:"BME680 register address constants and bitfield definitions." },
+              ]
+            },
+          ]
+        },
+        { n:"bmi323-rs/", t:"d", d:"no_std driver for the BMI323 6-axis IMU — measures 3-axis acceleration and 3-axis angular rate. Provides both blocking and async APIs.",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for bmi323-rs." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the BMI323 driver." },
+            { n:"src/", t:"d", d:"BMI323 driver source files.",
+              c:[
+                { n:"async.rs",     t:"f", d:"Async implementation using embedded-hal-async traits. Used by the Embassy sensor task in the firmware." },
+                { n:"config.rs",    t:"f", d:"Configuration types: output data rate, full-scale range, bandwidth filter, and power-mode enumerations." },
+                { n:"interface.rs", t:"f", d:"Hardware interface abstraction for SPI and I2C." },
+                { n:"lib.rs",       t:"f", d:"Public driver API and module re-exports." },
+                { n:"registers.rs", t:"f", d:"BMI323 register map and bitfield definitions." },
+                { n:"sync.rs",      t:"f", d:"Blocking implementation using embedded-hal traits." },
+              ]
+            },
+          ]
+        },
+        { n:"bmp390-rs/", t:"d", d:"no_std driver for the BMP390 precision barometer — measures pressure and temperature with high resolution. Provides both blocking and async APIs.",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for bmp390-rs." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the BMP390 driver." },
+            { n:"src/", t:"d", d:"BMP390 driver source files.",
+              c:[
+                { n:"async.rs",      t:"f", d:"Async implementation using embedded-hal-async traits." },
+                { n:"config.rs",     t:"f", d:"Configuration types: pressure and temperature oversampling, IIR filter coefficient, and output data rate." },
+                { n:"conversion.rs", t:"f", d:"Converts raw ADC readings to calibrated pressure and temperature using the BMP390 double-precision compensation formula and on-chip calibration coefficients." },
+                { n:"interface.rs",  t:"f", d:"Hardware interface abstraction for SPI and I2C." },
+                { n:"lib.rs",        t:"f", d:"Public driver API and module re-exports." },
+                { n:"registers.rs",  t:"f", d:"BMP390 register map and bitfield definitions." },
+                { n:"sync.rs",       t:"f", d:"Blocking implementation using embedded-hal traits." },
+              ]
+            },
+          ]
+        },
+        { n:"mmc5983ma/", t:"d", d:"no_std driver for the MMC5983MA 3-axis magnetometer — measures magnetic field with 18-bit resolution. Provides both blocking and async APIs.",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for mmc5983ma." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the MMC5983MA driver." },
+            { n:"src/", t:"d", d:"MMC5983MA driver source files.",
+              c:[
+                { n:"async.rs",     t:"f", d:"Async implementation using embedded-hal-async traits." },
+                { n:"config.rs",    t:"f", d:"Configuration types: output data rate, decimation filter, and measurement bandwidth settings." },
+                { n:"float.rs",     t:"f", d:"Converts raw 18-bit ADC counts to microtesla values using floating-point arithmetic." },
+                { n:"interface.rs", t:"f", d:"Hardware interface abstraction for SPI and I2C." },
+                { n:"lib.rs",       t:"f", d:"Public driver API and module re-exports." },
+                { n:"registers.rs", t:"f", d:"MMC5983MA register map and bitfield definitions." },
+                { n:"sync.rs",      t:"f", d:"Blocking implementation using embedded-hal traits." },
+              ]
+            },
+          ]
+        },
+        { n:"ms5607-rs/", t:"d", d:"no_std driver for the MS5607 barometric pressure and temperature sensor. Provides both blocking and async APIs.",
+          c:[
+            { n:"Cargo.toml", t:"f", d:"Crate manifest for ms5607-rs." },
+            { n:"README.md",  t:"f", d:"Usage notes and quick-start examples for the MS5607 driver." },
+            { n:"src/", t:"d", d:"MS5607 driver source files.",
+              c:[
+                { n:"async_impl.rs",    t:"f", d:"Async implementation using embedded-hal-async traits." },
+                { n:"blocking_impl.rs", t:"f", d:"Blocking implementation using embedded-hal traits." },
+                { n:"details.rs",       t:"f", d:"Reads PROM calibration coefficients and applies the MS5607 second-order temperature-compensation algorithm to convert raw ADC values to pressure (Pa) and temperature (degrees C)." },
+                { n:"interface.rs",     t:"f", d:"Hardware interface abstraction for SPI and I2C." },
+                { n:"lib.rs",           t:"f", d:"Public driver API and module re-exports." },
+              ]
+            },
+          ]
+        },
+      ]
+    },
+    { n:"firmware/", t:"d", d:"The ap-udp-demo firmware binary crate — the main firmware that runs on Kiwi (RP2350B). Ties all Embassy tasks together: sensor acquisition, Wi-Fi, USB, and hardware watchdog.",
+      c:[
+        { n:"Cargo.toml", t:"f", d:"Firmware crate manifest. Declares Embassy framework dependencies and sensor feature flags (bme680, bmi323, bmp390, mmc5983ma, ms5607, sensors-all) that control which sensor drivers are compiled in." },
+        { n:"build.rs",   t:"f", d:"Cargo build script. Copies memory.x.template into the linker search path and sets the -Tlink.x and -Tdefmt.x linker flags required for Cortex-M bare-metal builds." },
+        { n:"src/", t:"d", d:"Firmware source files.",
+          c:[
+            { n:"main.rs",         t:"f", d:"Entry point. Initialises clocks, the Embassy executor, and DMA; then claims peripherals and spawns all async tasks: sensor tasks, Wi-Fi, USB, and the hardware watchdog." },
+            { n:"lib.rs",          t:"f", d:"Shared types and measurement structs (e.g. SensorData) used across tasks. Also re-exports common dependencies to keep individual task files concise." },
+            { n:"resources.rs",    t:"f", d:"Peripheral resource declarations. Uses embassy-rp macros to distribute I2C, SPI, USB, Wi-Fi, and watchdog peripherals to the correct tasks, preventing accidental sharing." },
+            { n:"sensor_tasks.rs", t:"f", d:"Async Embassy tasks, one per sensor subsystem. Each task independently drives its sensor over the shared I2C bus and publishes measurements to a channel consumed by the Wi-Fi and USB tasks." },
+            { n:"usb.rs",          t:"f", d:"USB task. Handles USB enumeration, exposes a HID/CDC interface, and relays configuration and data-rate control commands from the host to the sensor tasks." },
+            { n:"wifi.rs",         t:"f", d:"Wi-Fi task. Initialises the CYW43439 chip, brings up a WPA2/open access point named kiwi-ap, and streams sensor measurements over UDP using embassy-net." },
+          ]
+        },
+      ]
+    },
+    { n:"rules/", t:"d", d:"Linux udev rules. Installed by setup.sh (or manually) so the debug probe and Kiwi board are accessible to the current user without root privileges.",
+      c:[
+        { n:"99-kiwi.rules",  t:"f", d:"udev rule that grants the logged-in user read/write access to the Kiwi USB device (RP2350B in BOOTSEL or runtime mode) by matching its USB vendor/product ID." },
+        { n:"99-pico-probe.rules", t:"f", d:"udev rule that grants the logged-in user read/write access to the Raspberry Pi Debug Probe by matching its USB vendor/product ID." },
+      ]
+    },
+  ];
+
+  /* ── SVG templates ─────────────────────────────────────────────── */
+  var SVG_DIR  = '<svg class="repo-svg-icon repo-svg-icon--dir" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1z"/></svg>';
+  var SVG_FILE = '<svg class="repo-svg-icon repo-svg-icon--file" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5zm6.75.062V4.25c0 .138.112.25.25.25h2.688z"/></svg>';
+
+  /* ── Refs ──────────────────────────────────────────────────────── */
+  var panel  = document.getElementById("repoInfo");
+  var treeEl = document.getElementById("repoTree");
+  var active = null;
+
+  /* ── Helpers ───────────────────────────────────────────────────── */
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function setActive(btn) {
+    if (active) active.classList.remove("repo-node--active");
+    active = btn;
+    btn.classList.add("repo-node--active");
+  }
+
+  function showInfo(node, isDir) {
+    panel.innerHTML =
+      '<p class="repo-info__name">' +
+        (isDir ? SVG_DIR : SVG_FILE) + " " + esc(node.n) +
+        '<span class="repo-info__badge repo-info__badge--' + (isDir ? "dir" : "file") + '">' +
+          (isDir ? "directory" : "file") +
+        "</span>" +
+      "</p>" +
+      '<p class="repo-info__desc">' + esc(node.d) + "</p>";
+  }
+
+  /* ── Recursive builder ─────────────────────────────────────────── */
+  function build(items, parentUl) {
+    items.forEach(function (node) {
+      var isDir = node.t === "d";
+      var li    = document.createElement("li");
+      var btn   = document.createElement("button");
+      btn.type      = "button";
+      btn.className = "repo-node" + (isDir ? " repo-node--dir" : "");
+
+      /* icon */
+      btn.insertAdjacentHTML("beforeend", isDir ? SVG_DIR : SVG_FILE);
+
+      /* chevron — visible for dirs, invisible spacer for files */
+      var chev = document.createElement("span");
+      chev.className = "repo-chevron";
+      chev.setAttribute("aria-hidden", "true");
+      if (isDir) chev.textContent = "\u25B6"; /* ▶ */
+      btn.appendChild(chev);
+
+      /* label */
+      var label = document.createElement("span");
+      label.textContent = node.n;
+      btn.appendChild(label);
+
+      li.appendChild(btn);
+
+      if (isDir && node.c && node.c.length) {
+        var wrap = document.createElement("div");
+        wrap.className = "repo-children";
+        var ul = document.createElement("ul");
+        build(node.c, ul);
+        wrap.appendChild(ul);
+        li.appendChild(wrap);
+        btn.setAttribute("aria-expanded", "false");
+
+        btn.addEventListener("click", function () {
+          var open = btn.classList.contains("repo-node--open");
+          btn.classList.toggle("repo-node--open", !open);
+          wrap.classList.toggle("repo-children--open", !open);
+          btn.setAttribute("aria-expanded", String(!open));
+          setActive(btn);
+          showInfo(node, true);
+        });
+      } else {
+        btn.addEventListener("click", function () {
+          setActive(btn);
+          showInfo(node, isDir);
+        });
+      }
+
+      parentUl.appendChild(li);
+    });
+  }
+
+  build(T, treeEl);
+})();
+</script>
