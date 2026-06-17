@@ -40,6 +40,7 @@ pub enum Command {
     Ident(Ident),
     Show,
     Store,
+    Version,
 }
 
 #[derive(Debug, PartialEq, Eq, Parsable)]
@@ -155,6 +156,12 @@ pub async fn usb_comm_task(
                 if let Ok(cmd) = parse::<_, Command>(msg.as_str(), ()) {
                     match cmd {
                         Command::Help => print_help_message(dev).await,
+                        Command::Version => {
+                            dev.write_message(b"Kiwi Demo Firmware v").await;
+                            dev.write_message(env!("CARGO_PKG_VERSION").as_bytes())
+                                .await;
+                            dev.write_message(b"\r\n").await;
+                        }
                         Command::Wifi(WifiCmd::Status) => {
                             match load_device_config(WIFI_CREDS_ADDR) {
                                 Ok(ref conf) => {
@@ -412,7 +419,10 @@ fn update_config(
 }
 
 async fn print_help_message(dev: &mut CdcAcmDevice) {
-    dev.write_message(b"Kiwi Demo Firmware\r\n").await;
+    dev.write_message(b"Kiwi Demo Firmware v").await;
+    dev.write_message(env!("CARGO_PKG_VERSION").as_bytes())
+        .await;
+    dev.write_message(b"\r\n").await;
     dev.write_message(b"----------------------------\r\n").await;
     dev.write_message(b"Available commands:\r\n").await;
     dev.write_message(b"  help                - Show this help message\r\n")
@@ -434,6 +444,8 @@ async fn print_help_message(dev: &mut CdcAcmDevice) {
     dev.write_message(b"  reset               - Reset the device\r\n")
         .await;
     dev.write_message(b"  clear               - Clear the terminal screen\r\n")
+        .await;
+    dev.write_message(b"  version             - Show firmware version\r\n")
         .await;
     dev.write_message(b"\r\n").await;
 }

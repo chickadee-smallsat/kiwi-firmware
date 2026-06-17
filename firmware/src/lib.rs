@@ -10,7 +10,7 @@ use kiwi_measurements::SingleMeasurement;
 /// Default SSID for the Wi-Fi Access Point (no password)
 pub const DEFAULT_WIFI_HOST_AP: &str = "kiwi-ap";
 /// Default device name
-pub const DEFAULT_DEVICE_NAME: &str = "kiwi#0001";
+pub const DEFAULT_DEVICE_NAME: &str = "kiwiUF2";
 /// Size of the channel buffer for transmitting `SingleMeasurement` data between tasks.
 pub const MEASUREMENT_CHANNEL_SIZE: usize = 32;
 

@@ -26,16 +26,13 @@ use embassy_rp::{
 use embassy_time::{Duration, Instant, Ticker, Timer};
 use static_cell::StaticCell;
 
-use device_blob::{DeviceConfig, WifiConf, load_device_config, load_firmware_blob};
+use device_blob::{DeviceConfig, WifiConf, load_device_config};
 
 use crate::{
     DEFAULT_DEVICE_NAME, DEFAULT_WIFI_HOST_AP, DataRateReplySender, DataRateRequestReceiver,
     MeasurementReceiver, MeasurementSender,
     resources::{IrqHandlers, WifiPins, WifiSpi},
-    wifi_fw_consts::{
-        WIFI_CLM_ADDR, WIFI_CLM_CRC, WIFI_CLM_LEN, WIFI_CREDS_ADDR, WIFI_FW_ADDR, WIFI_FW_CRC,
-        WIFI_FW_LEN,
-    },
+    wifi_fw_consts::WIFI_CREDS_ADDR,
 };
 
 const DATA_RATE_MS: u32 = 2000; // Update data rate every 2 seconds
@@ -55,18 +52,7 @@ pub async fn wifi_task(
     reply: DataRateReplySender,
 ) -> ! {
     let wifi_nvram = cyw43::aligned_bytes!("../../cyw43-firmware/nvram_rp2040.bin");
-    let wifi_firmware = unsafe { load_firmware_blob(WIFI_FW_ADDR, WIFI_FW_LEN, WIFI_FW_CRC) }.inspect_err(|e| error!(
-            "WiFi Firmware CRC did not match! Expected: 0x{:x}, Calculated: 0x{:x}. Was the WiFi firmware flashed?",
-            WIFI_FW_CRC,
-            e
-        )).expect("WiFi firmware verification failed");
-    let wifi_controlmode =
-        unsafe{load_firmware_blob(WIFI_CLM_ADDR, WIFI_CLM_LEN, WIFI_CLM_CRC)}.inspect_err(|e| error!(
-            "WiFi CLM CRC did not match! Expected: 0x{:x}, Calculated: 0x{:x}. Was the WiFi firmware flashed?",
-            WIFI_CLM_CRC,
-            e
-        )).expect("WiFi CLM verification failed");
-    info!("Wi-Fi firmware and CLM verified");
+    let (wifi_firmware, wifi_controlmode) = load_wifi_blobs();
     // Load WiFi credentials
     let conf = load_device_config(WIFI_CREDS_ADDR);
     match conf {
@@ -346,4 +332,44 @@ impl<const RATE: u32> DataRateCounter<RATE> {
             })
         }
     }
+}
+
+type WiFiBlobRet = (
+    &'static cyw43::Aligned<cyw43::A4, [u8]>,
+    &'static cyw43::Aligned<cyw43::A4, [u8]>,
+);
+
+#[cfg(not(feature = "compile_uf2"))]
+use device_blob::load_firmware_blob;
+
+#[cfg(not(feature = "compile_uf2"))]
+use crate::wifi_fw_consts::{
+    WIFI_CLM_ADDR, WIFI_CLM_CRC, WIFI_CLM_LEN, WIFI_FW_ADDR, WIFI_FW_CRC, WIFI_FW_LEN,
+};
+
+#[cfg(not(feature = "compile_uf2"))]
+/// Load WiFi blobs from fixed addresses
+fn load_wifi_blobs() -> WiFiBlobRet {
+    let wifi_firmware = unsafe { load_firmware_blob(WIFI_FW_ADDR, WIFI_FW_LEN, WIFI_FW_CRC) }.inspect_err(|e| error!(
+            "WiFi Firmware CRC did not match! Expected: 0x{:x}, Calculated: 0x{:x}. Was the WiFi firmware flashed?",
+            WIFI_FW_CRC,
+            e
+        )).expect("WiFi firmware verification failed");
+    let wifi_controlmode =
+        unsafe{load_firmware_blob(WIFI_CLM_ADDR, WIFI_CLM_LEN, WIFI_CLM_CRC)}.inspect_err(|e| error!(
+            "WiFi CLM CRC did not match! Expected: 0x{:x}, Calculated: 0x{:x}. Was the WiFi firmware flashed?",
+            WIFI_CLM_CRC,
+            e
+        )).expect("WiFi CLM verification failed");
+    info!("Wi-Fi firmware and CLM verified");
+    (wifi_firmware, wifi_controlmode)
+}
+
+#[cfg(feature = "compile_uf2")]
+/// Load WiFi blobs from bytes baked into the firmware
+fn load_wifi_blobs() -> WiFiBlobRet {
+    let wifi_firmware = cyw43::aligned_bytes!("../../cyw43-firmware/43439A0.bin");
+    let wifi_controlmode = cyw43::aligned_bytes!("../../cyw43-firmware/43439A0_clm.bin");
+    info!("Wi-Fi firmware and CLM baked into firmware");
+    (wifi_firmware, wifi_controlmode)
 }

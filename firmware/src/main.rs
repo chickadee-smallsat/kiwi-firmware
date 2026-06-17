@@ -1,16 +1,12 @@
 #![no_std]
 #![no_main]
 
-use kiwi_firmware_base::{
-    DataRateReplyChannel, DataRateRequestChannel, MeasurementChannel, DEFAULT_DEVICE_NAME,
-    DEFAULT_WIFI_HOST_AP,
-};
 use embassy_sync::channel::Channel;
-// Re-export lib types so submodules can use `crate::` to access them.
-pub use kiwi_firmware_base::{
-    DataRateReplyReceiver, DataRateReplySender, DataRateRequestReceiver, DataRateRequestSender,
-    MeasurementReceiver, MeasurementSender, MEASUREMENT_CHANNEL_SIZE,
+use kiwi_firmware_base::{
+    DEFAULT_DEVICE_NAME, DEFAULT_WIFI_HOST_AP, DataRateReplyChannel, DataRateRequestChannel,
+    MeasurementChannel,
 };
+// Re-export lib types so submodules can use `crate::` to access them.
 use defmt::*;
 use embassy_executor::{Executor, Spawner};
 use embassy_rp::multicore::{Stack, spawn_core1};
@@ -19,6 +15,10 @@ use embassy_task_watchdog::{
     ResetReason, WatchdogConfig, create_watchdog, embassy_rp::WatchdogRunner,
 };
 use embassy_time::{Duration, Instant, Timer};
+pub use kiwi_firmware_base::{
+    DataRateReplyReceiver, DataRateReplySender, DataRateRequestReceiver, DataRateRequestSender,
+    MEASUREMENT_CHANNEL_SIZE, MeasurementReceiver, MeasurementSender,
+};
 use static_cell::StaticCell;
 
 use {defmt_rtt as _, panic_probe as _};
@@ -61,7 +61,7 @@ async fn main(spawner: Spawner) {
     let rp_recv = dr_reply_channel.receiver();
     let rp_send = dr_reply_channel.sender();
 
-    info!("Kiwi Demo FW starting up...");
+    info!("Kiwi Demo FW v{} starting up...", env!("CARGO_PKG_VERSION"));
     match watchdog.reset_reason().await {
         ResetReason::Forced(reason) => info!("Forced reset, reason: {}", reason),
         ResetReason::TimedOut(task) => info!("Task timed out: {}", task),

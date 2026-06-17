@@ -87,6 +87,33 @@ probe-rs attach target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
 probe-rs attach target\thumbv8m.main-none-eabihf\release\kiwi-firmware-base
 ```
 
+## Building UF2 Image
+
+While `probe-rs` is the preferred method of flashing the Kiwi, it is also possible to build a UF2 image of the firmware and deploy it to your Kiwi.
+1. Install `elf2uf2-rs` from source:
+   ```sh
+   cargo install --git https://github.com/JoNil/elf2uf2-rs  # Install the tool from the source repository
+   ```
+
+2. Prepare the firmware for the UF2 image (at the root of the `kiwi-firmware` repository):
+   ```sh
+   cargo build --release --features compile_uf2  # Build the firmware with the UF2 compilation feature enabled
+   ```
+
+3. Build the UF2 image:
+   ```sh
+   elf2uf2-rs convert --family rp2xxx-absolute target/release/kiwi-firmware-base kiwi-firmware.uf2  # Convert the ELF firmware to a UF2 image
+   ```
+
+4. Flash the UF2 image:
+   1. Hold the `BOOTSEL` button (next to the USB port) and connect the Kiwi to your computer via USB.
+   2. Release the `BOOTSEL` button once the Kiwi appears as a USB mass storage device.
+   3. Copy the `kiwi-firmware.uf2` file to the Kiwi USB mass storage device.
+   4. The Kiwi will automatically reboot with the new firmware.
+   
+   > [!NOTE]
+   > You may need to configure the Wi-Fi settings using the serial interface after flashing the UF2 image.
+
 ## Drivers
 
 Each driver lives in `drivers/` and has its own README:

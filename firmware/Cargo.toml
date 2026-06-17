@@ -1,6 +1,6 @@
 [package]
 name = "kiwi-firmware-base"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 
 [dependencies]
@@ -118,6 +118,7 @@ imu-gyro-odr-200hz = ["sensor-imu"]
 imu-gyro-odr-400hz = ["sensor-imu"]
 imu-gyro-odr-800hz = ["sensor-imu"]
 imu-gyro-odr-1600hz = ["sensor-imu"]
+compile_uf2 = []
 default = ["defmt", "sensors-all", "imu-accel-odr-50hz", "imu-gyro-odr-50hz"]
 
 [build-dependencies]

@@ -9,6 +9,7 @@
 **/flash-wifi-fw.bat
 **/wifi_creds.bin
 .kiwi_*
+*.uf2
 
 # Jekyll build artifacts
 docs/_site/

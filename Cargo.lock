@@ -1147,7 +1147,7 @@ dependencies = [
 
 [[package]]
 name = "kiwi-firmware-base"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "assign-resources",
  "bme680-rs",
