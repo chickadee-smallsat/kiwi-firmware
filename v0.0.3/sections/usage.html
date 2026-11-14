@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Kiwi Firmware | Embedded firmware documentation for the Kiwi (RP2350B).</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Kiwi Firmware" />
+<meta name="author" content="Chickadee" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:description" content="Embedded firmware documentation for the Kiwi (RP2350B)." />
+<meta property="og:site_name" content="Kiwi Firmware" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Kiwi Firmware" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","author":{"@type":"Person","name":"Chickadee"},"description":"Embedded firmware documentation for the Kiwi (RP2350B).","headline":"Kiwi Firmware","url":"/kiwi-firmware/v0.0.3/sections/usage.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap" as="style" type="text/css" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#157878">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="/kiwi-firmware/v0.0.3/assets/css/style.css">
+    <link rel="icon" href="/kiwi-firmware/v0.0.3/favicon.ico" type="image/x-icon">
+<script>try{var _kct=localStorage.getItem('kiwi-color-theme');if(_kct&&_kct!=='default')document.documentElement.dataset.theme=_kct;}catch(e){}</script>
+<script>MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]'],['$$','$$']],processEscapes:true},options:{skipHtmlTags:['script','noscript','style','textarea','pre']}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<script>window.SITE_BASEURL = "/kiwi-firmware/v0.0.3";</script>
+<script src="/kiwi-firmware/v0.0.3/assets/js/manual.js" defer></script>
+
+  </head>
+  <body>
+    <a id="skip-to-content" href="#content">Skip to the content.</a>
+
+    <header class="page-header" role="banner">
+      <h1 class="project-name">Kiwi Firmware</h1>
+      <h2 class="project-tagline">Embedded firmware documentation for the Kiwi (RP2350B).</h2>
+      
+        <a href="https://github.com/chickadee-smallsat/kiwi-firmware" class="btn">View on GitHub</a>
+      
+      
+    </header>
+
+    <main id="content" class="main-content" role="main">
+      <section class="manual-sheet" id="usage">
+
+  <h1 id="using-the-kiwi">Using the Kiwi</h1>
+
+  <p>Once flashed, Kiwi streams every sensor measurement over one radio at a time, Wi-Fi or Bluetooth Low-Energy (BLE), and logs it to a microSD card if one is inserted. It is configured over its USB serial interface.</p>
+
+  <h2 id="radio-modes">Radio Modes</h2>
+
+  <p>Kiwi boots in <strong>Wi-Fi mode</strong> (or in <strong>BLE mode</strong> when built with the <code class="language-plaintext highlighter-rouge">ble-default</code> feature). Press the <code class="language-plaintext highlighter-rouge">BOOTSEL</code> button at any time to switch between the two. Each press toggles the mode, including while Kiwi is still trying to join a Wi-Fi network.</p>
+
+  <h3 id="wi-fi">Wi-Fi</h3>
+
+  <p>Depending on its configuration, Kiwi either hosts its own network or joins a Wi-Fi network:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Configuration</th>
+        <th>Behaviour</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Access point</strong> (<code class="language-plaintext highlighter-rouge">wifi ap</code>)</td>
+        <td>Kiwi hosts a Wi-Fi network on channel 5 (open, or WPA2 with a password). Kiwi’s address on it is <code class="language-plaintext highlighter-rouge">169.254.1.1</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Client</strong> (<code class="language-plaintext highlighter-rouge">wifi cl</code>)</td>
+        <td>Kiwi joins the configured network and gets an address by DHCP.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>If Kiwi cannot join the configured network within 60 seconds, it falls back to hosting an <strong>open access point named after its device identifier</strong>, so it stays reachable.</p>
+
+  <p>In Wi-Fi mode, measurements are broadcast as UDP datagrams to port <strong>8099</strong>, one measurement per datagram (see <a href="#data-format">Data Format</a>).
+In client mode, Kiwi also sends its Wi-Fi signal strength (RSSI) every 2 seconds.</p>
+
+  <h3 id="bluetooth-low-energy-ble">Bluetooth Low Energy (BLE)</h3>
+
+  <p>In BLE mode, Kiwi advertises under its device identifier. Up to <strong>four</strong> clients can connect at the same time without pairing.
+Each client receives every measurement as a notification, along with the signal strength (RSSI) of the BLE link every 2 seconds.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>UUID</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Kiwi data service</td>
+        <td><code class="language-plaintext highlighter-rouge">6b697769-0001-4a6e-8f3b-2c9d5e7a1b00</code></td>
+      </tr>
+      <tr>
+        <td>Measurement characteristic (read, notify)</td>
+        <td><code class="language-plaintext highlighter-rouge">6b697769-0002-4a6e-8f3b-2c9d5e7a1b00</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Subscribe to notifications on the measurement characteristic.
+Each notification carries one or more consecutive measurements (up to five) within the negotiated ATT MTU, so clients must negotiate an MTU of at least 27 bytes.
+A client that cannot keep up loses its oldest measurements; other clients are not affected.</p>
+
+  <h2 id="data-format">Data Format</h2>
+
+  <p>Every measurement, whether sent over UDP, BLE, or written to the microSD card, is a fixed-size <strong>24-byte</strong> <code class="language-plaintext highlighter-rouge">SingleMeasurement</code> record from the <a href="https://crates.io/crates/kiwi-measurements"><code class="language-plaintext highlighter-rouge">kiwi-measurements</code></a> crate, which can decode it. Besides sensor readings, Kiwi sends its device identifier every 15 seconds and signal-strength (RSSI) records, so clients can name the device and show link quality.</p>
+
+  <h2 id="microsd-logging">microSD Logging</h2>
+
+  <p>If a microSD card is inserted, Kiwi records every measurement to it. Each power-on starts a new run directory:</p>
+
+  <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>KIWI/
+  README.TXT      describes this layout
+  00001/          firmware run 1
+    00000.BIN     first data segment
+    00001.BIN     next segment (started after 3 GiB)
+  00002/          firmware run 2 (next power-on)
+</code></pre></div>  </div>
+
+  <p>Each <code class="language-plaintext highlighter-rouge">.BIN</code> file starts with a 256-byte text header, followed by 24-byte measurement records. To parse a file, skip the first 256 bytes, then read every 24 bytes as one record.</p>
+
+  <h2 id="serial-commands">Serial Commands</h2>
+
+  <p>Kiwi appears on your computer as a USB device named <strong>Kiwi Mainboard Rev. B</strong> with two serial ports. The <strong>first</strong> is the command console; the second carries the firmware’s binary log stream (read by <code class="language-plaintext highlighter-rouge">probe-rp-usb</code>). Open the command console with any serial terminal, for example:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>Port</th>
+        <th>Example</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Linux</td>
+        <td><code class="language-plaintext highlighter-rouge">/dev/ttyACM0</code> (first of the pair)</td>
+        <td><code class="language-plaintext highlighter-rouge">screen /dev/ttyACM0</code></td>
+      </tr>
+      <tr>
+        <td>macOS</td>
+        <td><code class="language-plaintext highlighter-rouge">/dev/cu.usbmodem…</code> (first of the pair)</td>
+        <td><code class="language-plaintext highlighter-rouge">screen /dev/cu.usbmodem…</code></td>
+      </tr>
+      <tr>
+        <td>Windows</td>
+        <td><code class="language-plaintext highlighter-rouge">COMn</code> (first of the pair)</td>
+        <td>PuTTY, or the VS Code Serial Monitor</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Kiwi shows a <code class="language-plaintext highlighter-rouge">&gt;</code> prompt. Type a command and press <kbd>Enter</kbd>:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Command</th>
+        <th>Effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">help</code></td>
+        <td>List the available commands</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">version</code></td>
+        <td>Show the firmware version</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">wifi status</code></td>
+        <td>Show the stored configuration and the current data rate</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">ident get</code></td>
+        <td>Show the device identifier</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">ident set &lt;ident&gt;</code></td>
+        <td>Set the device identifier (up to 12 characters)</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">wifi ap &lt;ssid&gt; [password]</code></td>
+        <td>Host an access point named <code class="language-plaintext highlighter-rouge">&lt;ssid&gt;</code>, open if no password is given</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">wifi cl &lt;ssid&gt; [password]</code></td>
+        <td>Join the network <code class="language-plaintext highlighter-rouge">&lt;ssid&gt;</code> as a client, open if no password is given</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">show</code></td>
+        <td>Show the changes made but not yet stored</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">store</code></td>
+        <td>Save the changes to flash and restart Kiwi</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">reset</code></td>
+        <td>Restart Kiwi</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">clear</code></td>
+        <td>Clear the terminal screen</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Passwords must be at least 8 characters. <code class="language-plaintext highlighter-rouge">ident set</code>, <code class="language-plaintext highlighter-rouge">wifi ap</code> and <code class="language-plaintext highlighter-rouge">wifi cl</code> only take effect after <code class="language-plaintext highlighter-rouge">store</code>, which saves them and restarts Kiwi. For example, to join a network called <code class="language-plaintext highlighter-rouge">lab-net</code>:</p>
+
+  <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&gt; wifi cl lab-net mypassword
+&gt; store
+</code></pre></div>  </div>
+
+  <h2 id="client-software">Client Software</h2>
+
+  <p><a href="https://github.com/chickadee-smallsat/kiwi-mainboard-clients/releases/latest">Kiwi Plotter</a> is a desktop app for Linux, Windows, and macOS that receives data from Kiwi devices over both Wi-Fi and BLE, plots it live, and exports it to CSV or Excel files.
+To write your own client, listen for UDP datagrams on port 8099 or subscribe to the BLE characteristic above, and decode the records with <code class="language-plaintext highlighter-rouge">kiwi-measurements</code>.</p>
+
+</section>
+
+
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <span class="site-footer-owner">
+            <a href="https://github.com/chickadee/kiwi-firmware-template">kiwi-firmware</a>
+            
+            is maintained by
+            <a href="mailto:sunipkmukherjee@gmail.com">Chickadee</a>.
+            
+          </span>
+          
+          <span class="site-footer-contact">
+            Contact us: <a href="mailto:sunipkmukherjee@gmail.com">sunipkmukherjee@gmail.com</a>
+          </span>
+          
+          <div class="version-selector" aria-label="Documentation version selector">
+  <label class="version-selector__label" for="version-select">Version</label>
+  <select id="version-select" class="version-selector__select">
+    <option value="" disabled selected>Loading versions...</option>
+  </select>
+</div>
+
+<script>
+(function () {
+  var baseurl = '/kiwi-firmware/v0.0.3';
+  var parts = baseurl.split('/').filter(Boolean);
+  var current = parts.length ? parts[parts.length - 1] : 'latest';
+  var docsRoot = parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : (parts.length === 1 ? '/' + parts[0] : '');
+  var versionsUrl = (docsRoot || '') + '/versions.json';
+
+  function targetUrl(version) {
+    var root = docsRoot || '';
+    return root + '/' + version + '/';
+  }
+
+  fetch(versionsUrl)
+    .then(function (res) {
+      return res.ok ? res.json() : [];
+    })
+    .catch(function () {
+      return [];
+    })
+    .then(function (versions) {
+      var select = document.getElementById('version-select');
+      if (!select || !Array.isArray(versions) || !versions.length) {
+        return;
+      }
+
+      select.innerHTML = '';
+      versions.forEach(function (v, i) {
+        var option = document.createElement('option');
+        option.value = v;
+        option.textContent = i === 0 ? v + ' (latest)' : v;
+        option.selected = (v === current);
+        select.appendChild(option);
+      });
+
+      if (!versions.includes(current)) {
+        select.selectedIndex = 0;
+      }
+
+      select.addEventListener('change', function () {
+        window.location.href = targetUrl(select.value) + window.location.hash;
+      });
+    });
+})();
+</script>
+
+          <span class="site-footer-credits">Generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+        </div>
+      </footer>
+    </main>
+    <aside class="theme-switcher" id="theme-switcher">
+  <button class="theme-switcher__toggle" id="theme-toggle"
+          aria-haspopup="true" aria-expanded="false" aria-controls="theme-panel"
+          aria-label="Color theme">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5
+               0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16
+               c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5
+               S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5
+               S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5
+               S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5
+               S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </svg>
+  </button>
+
+  <div class="theme-switcher__panel" id="theme-panel" hidden role="group" aria-label="Select color theme">
+    <p class="theme-switcher__heading">Color theme</p>
+
+    <button class="theme-opt" data-theme="default" aria-pressed="true">
+      <span class="theme-opt__dot" style="background:#0e3247;box-shadow:0 0 0 2px #7fd4f0"></span>
+      Default
+    </button>
+    <button class="theme-opt" data-theme="deuteranopia" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#0d2c52;box-shadow:0 0 0 2px #f5a428"></span>
+      Deuteranopia-friendly
+    </button>
+    <button class="theme-opt" data-theme="high-contrast" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#000;box-shadow:0 0 0 2px #ffff00"></span>
+      High Contrast
+    </button>
+    <button class="theme-opt" data-theme="monochrome" aria-pressed="false">
+      <span class="theme-opt__dot" style="background:#1e1e1e;box-shadow:0 0 0 2px #d0d0d0"></span>
+      Monochrome
+    </button>
+  </div>
+
+  <div aria-live="polite" aria-atomic="true" class="theme-switcher__announce" id="theme-announce"></div>
+</aside>
+
+<script>
+(function () {
+  var PREF_KEY = 'kiwi-color-theme';
+  var labels = {
+    'default': 'Default',
+    'deuteranopia': 'Deuteranopia-friendly',
+    'high-contrast': 'High Contrast',
+    'monochrome': 'Monochrome'
+  };
+
+  var root    = document.documentElement;
+  var toggle  = document.getElementById('theme-toggle');
+  var panel   = document.getElementById('theme-panel');
+  var opts    = document.querySelectorAll('.theme-opt');
+  var announce = document.getElementById('theme-announce');
+
+  function applyTheme(theme, shouldAnnounce) {
+    if (theme && theme !== 'default') {
+      root.dataset.theme = theme;
+    } else {
+      delete root.dataset.theme;
+      theme = 'default';
+    }
+    opts.forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.theme === theme));
+    });
+    if (shouldAnnounce && announce) {
+      announce.textContent = '';
+      // Force re-announcement with a slight delay
+      setTimeout(function () {
+        announce.textContent = 'Color theme changed to ' + (labels[theme] || theme);
+      }, 50);
+    }
+    try { localStorage.setItem(PREF_KEY, theme); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('kiwi-theme', { detail: theme }));
+  }
+
+  // Sync button states with whatever theme was applied by the anti-FOUC script
+  var saved;
+  try { saved = localStorage.getItem(PREF_KEY) || 'default'; } catch (e) { saved = 'default'; }
+  applyTheme(saved, false);
+
+  // Toggle panel open/close
+  toggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var opening = panel.hidden;
+    panel.hidden = !opening;
+    toggle.setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      // Focus first option when opening
+      var first = panel.querySelector('.theme-opt');
+      if (first) first.focus();
+    }
+  });
+
+  // Option selection
+  opts.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyTheme(btn.dataset.theme, true);
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    });
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function (e) {
+    var sw = document.getElementById('theme-switcher');
+    if (sw && !sw.contains(e.target)) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !panel.hidden) {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    }
+  });
+})();
+</script>
+
+  </body>
+</html>

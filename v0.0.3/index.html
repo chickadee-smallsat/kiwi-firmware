@@ -67,17 +67,21 @@
   <h1 id="description">Description</h1>
 
   <p>This document covers the <strong>Kiwi Firmware</strong> — embedded firmware for Kiwi. 
-The firmware is written in the <a href="https://rust-lang.org">Rust Programming Language</a><span class="cite-ref" data-ref="rust-book"></span> using the <a href="https://embassy.dev">Embassy</a><span class="cite-ref" data-ref="embassy"></span> async framework and provides sensor acquisition, Wi-Fi access-point streaming, USB configuration, and hardware watchdog functionality.
+The firmware is written in the <a href="https://rust-lang.org">Rust Programming Language</a><span class="cite-ref" data-ref="rust-book"></span> using the <a href="https://embassy.dev">Embassy</a><span class="cite-ref" data-ref="embassy"></span> async framework and provides sensor acquisition, measurement streaming over Wi-Fi or Bluetooth Low-Energy (BLE), microSD logging, USB configuration, and hardware watchdog functionality.
 It targets Kiwi<span class="cite-ref" data-ref="kiwi-hw"></span> based on the Raspberry Pi RP2350B.</p>
 
   <h2 id="key-features">Key Features</h2>
 
   <ul>
-    <li>Async sensor tasks for magnetometer (MMC5983MA), IMU (BMI323), barometer (MS5607), and environmental sensor (BME680)</li>
-    <li>Wi-Fi access point/client mode with UDP measurement streaming via <code class="language-plaintext highlighter-rouge">embassy-net</code></li>
-    <li>USB HID/CDC interface for configuration</li>
+    <li>Async sensor tasks for the magnetometer (MMC5983MA), IMU (BMI323), barometer (MS5607, or BMP390 on older boards), environmental sensor (BME680), and two ambient light sensors (OPT3001, top and bottom)</li>
+    <li>Measurement streaming over Wi-Fi (UDP broadcast) as an access point or a network client, falling back to an access point if the configured network cannot be joined</li>
+    <li>Measurement streaming over BLE to up to four clients at once, with no pairing required</li>
+    <li>The <code class="language-plaintext highlighter-rouge">BOOTSEL</code> button switches between Wi-Fi and BLE at any time</li>
+    <li>Measurement logging to a microSD card</li>
+    <li>USB serial interface for configuration, with firmware logs forwarded over the same USB connection</li>
     <li>Per-task hardware watchdog with reset-reason logging</li>
-    <li>Compile-time sensor selection via Cargo feature flags</li>
+    <li>Optional dual-core operation and CPU-usage reporting</li>
+    <li>Compile-time selection of sensors, default radio mode, and more via Cargo feature flags</li>
     <li><code class="language-plaintext highlighter-rouge">no_std</code> sensor driver library crates for reuse in derived projects</li>
   </ul>
 
@@ -127,14 +131,35 @@ Use caution while handling.</p>
       <li><a href="#linux-and-macos-1" id="markdown-toc-linux-and-macos-1">Linux and macOS</a></li>
       <li><a href="#windows-1" id="markdown-toc-windows-1">Windows</a></li>
       <li><a href="#verifying-the-installation" id="markdown-toc-verifying-the-installation">Verifying the Installation</a></li>
-      <li><a href="#building-and-flashing" id="markdown-toc-building-and-flashing">Building and Flashing</a></li>
+      <li><a href="#building-and-flashing" id="markdown-toc-building-and-flashing">Building and Flashing</a>        <ul>
+          <li><a href="#using-a-debug-probe-instead" id="markdown-toc-using-a-debug-probe-instead">Using a Debug Probe Instead</a></li>
+        </ul>
+      </li>
+      <li><a href="#build-options" id="markdown-toc-build-options">Build Options</a>        <ul>
+          <li><a href="#initial-device-configuration" id="markdown-toc-initial-device-configuration">Initial Device Configuration</a></li>
+          <li><a href="#log-level" id="markdown-toc-log-level">Log Level</a></li>
+        </ul>
+      </li>
       <li><a href="#attaching-to-a-running-target" id="markdown-toc-attaching-to-a-running-target">Attaching to a Running Target</a></li>
       <li><a href="#panic-wifi-or-bluetooth-firmware-verification-failed" id="markdown-toc-panic-wifi-or-bluetooth-firmware-verification-failed">Panic: WiFi (or Bluetooth) firmware verification failed</a>        <ul>
           <li><a href="#possible-causes" id="markdown-toc-possible-causes">Possible causes</a></li>
           <li><a href="#fix" id="markdown-toc-fix">Fix</a></li>
         </ul>
       </li>
-      <li><a href="#building-uf2-firmware" id="markdown-toc-building-uf2-firmware">Building UF2 Firmware</a></li>
+      <li><a href="#single-image-firmware" id="markdown-toc-single-image-firmware">Single-Image Firmware</a></li>
+      <li><a href="#installing-a-prebuilt-release" id="markdown-toc-installing-a-prebuilt-release">Installing a Prebuilt Release</a></li>
+    </ul>
+  </li>
+  <li><a href="#using-the-kiwi" id="markdown-toc-using-the-kiwi">Using the Kiwi</a>    <ul>
+      <li><a href="#radio-modes" id="markdown-toc-radio-modes">Radio Modes</a>        <ul>
+          <li><a href="#wi-fi" id="markdown-toc-wi-fi">Wi-Fi</a></li>
+          <li><a href="#bluetooth-low-energy-ble" id="markdown-toc-bluetooth-low-energy-ble">Bluetooth Low Energy (BLE)</a></li>
+        </ul>
+      </li>
+      <li><a href="#data-format" id="markdown-toc-data-format">Data Format</a></li>
+      <li><a href="#microsd-logging" id="markdown-toc-microsd-logging">microSD Logging</a></li>
+      <li><a href="#serial-commands" id="markdown-toc-serial-commands">Serial Commands</a></li>
+      <li><a href="#client-software" id="markdown-toc-client-software">Client Software</a></li>
     </ul>
   </li>
   <li><a href="#repository-structure" id="markdown-toc-repository-structure">Repository Structure</a></li>
@@ -187,9 +212,13 @@ Use caution while handling.</p>
 
   <ul>
     <li><strong>Kiwi</strong> (based on the <a href="https://pip-assets.raspberrypi.com/categories/1214-rp2350/documents/RP-008373-DS-2-rp2350-datasheet.pdf">Raspberry Pi RP2350B</a>)</li>
-    <li>A supported <strong>debug probe</strong> — any probe compatible with <code class="language-plaintext highlighter-rouge">probe-rs</code> (e.g. <a href="https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html">Raspberry Pi Debug Probe</a>, J-Link, CMSIS-DAP). Using the Raspberry Pi Debug Probe is recommended to access the on-board <a href="https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-/Introduction-to-the-ARM-Serial-Wire-Debug--SWD--protocol">ARM Serial Wire Debugging interface</a> (not provided).</li>
-    <li>Cable to connect the debug probe to Kiwi (not provided)</li>
+    <li>A <strong>USB cable</strong> to connect Kiwi to your computer</li>
+    <li><em>Optional:</em> a supported <strong>debug probe</strong> — any probe compatible with <code class="language-plaintext highlighter-rouge">probe-rs</code> (e.g. <a href="https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html">Raspberry Pi Debug Probe</a>, J-Link, CMSIS-DAP), and a cable to connect it to Kiwi (neither provided). Using the Raspberry Pi Debug Probe is recommended to access the on-board <a href="https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-/Introduction-to-the-ARM-Serial-Wire-Debug--SWD--protocol">ARM Serial Wire Debugging interface</a>.</li>
   </ul>
+
+  <blockquote class="callout-note">
+    <p>Flashing and log streaming work over the USB cable alone (see <a href="#building-and-flashing">Building and Flashing</a>). A debug probe adds on-chip debugging (breakpoints, stepping, inspecting variables), and lets you recover a board whose firmware no longer brings up USB.</p>
+  </blockquote>
 
   <h2 id="software-dependencies-installed-by-the-setup-script">Software Dependencies Installed by the Setup Script</h2>
 
@@ -221,6 +250,9 @@ Use caution while handling.</p>
       </tr>
     </tbody>
   </table>
+
+  <p>The default USB flashing tool, <a href="https://github.com/sunipkm/probe-rp-usb"><code class="language-plaintext highlighter-rouge">probe-rp-usb</code></a>, is not installed by the setup scripts.
+Install it with <code class="language-plaintext highlighter-rouge">cargo install probe-rp-usb</code> (see <a href="#building-and-flashing">Building and Flashing</a>).</p>
 
   <h3 id="additional-linux-step">Additional Linux Step</h3>
 
@@ -431,23 +463,133 @@ The script installs udev rules automatically. If you need to do this manually:</
 
   <h2 id="building-and-flashing">Building and Flashing</h2>
 
-  <p>Connect your debug probe to the Kiwi, then run:</p>
+  <p>By default, <code class="language-plaintext highlighter-rouge">cargo run</code> flashes Kiwi over its USB connection with <a href="https://github.com/sunipkm/probe-rp-usb"><code class="language-plaintext highlighter-rouge">probe-rp-usb</code></a>.
+No debug probe is needed.
+Install it once:</p>
+
+  <p>Linux (the USB serial support needs libudev):</p>
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>apt <span class="nb">install </span>libudev-dev pkg-config   <span class="c"># Debian/Ubuntu; use your distribution's equivalent</span>
+cargo <span class="nb">install </span>probe-rp-usb
+</code></pre></div>  </div>
+
+  <p>macOS / Windows:</p>
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo install probe-rp-usb
+</span></code></pre></div>  </div>
+
+  <p>Connect Kiwi to your computer over USB, then run:</p>
 
   <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release
 </span></code></pre></div>  </div>
 
-  <p>This builds the firmware in release mode and flashes it via <code class="language-plaintext highlighter-rouge">probe-rs</code>. RTT/defmt log output is streamed to the terminal automatically.</p>
+  <p>This builds the firmware in release mode, resets the running Kiwi into its <code class="language-plaintext highlighter-rouge">BOOTSEL</code> bootloader over USB, flashes the new firmware, and then streams the firmware’s defmt log output from the USB serial port to the terminal. If Kiwi is not running firmware that answers the USB reset request (for example, a new board), hold <code class="language-plaintext highlighter-rouge">BOOTSEL</code> while plugging it in first.</p>
 
-  <p>To enable specific sensor subsystems, pass the relevant feature flags:</p>
+  <h3 id="using-a-debug-probe-instead">Using a Debug Probe Instead</h3>
 
-  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release --features sensors-all
+  <p>To flash and stream logs through a <code class="language-plaintext highlighter-rouge">probe-rs</code> debug probe instead, switch the runner in <code class="language-plaintext highlighter-rouge">.cargo/config.toml</code>: comment out the <code class="language-plaintext highlighter-rouge">probe-rp-usb</code> runner line and uncomment the <code class="language-plaintext highlighter-rouge">probe-rs</code> one:</p>
+
+  <div class="language-toml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># runner = "probe-rp-usb run --family rp2xxx-absolute"</span>
+<span class="py">runner</span> <span class="p">=</span> <span class="s">"probe-rs run --chip RP235x --protocol swd"</span>
+</code></pre></div>  </div>
+
+  <h2 id="build-options">Build Options</h2>
+
+  <p>Firmware features are selected with Cargo feature flags.</p>
+
+  <p>The default build enables all current sensors (<code class="language-plaintext highlighter-rouge">sensors-all</code>), dual-core operation, and 50 Hz IMU data rates. Commonly used flags:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">sensor-mag</code>, <code class="language-plaintext highlighter-rouge">sensor-imu</code>, <code class="language-plaintext highlighter-rouge">sensor-baro</code>, <code class="language-plaintext highlighter-rouge">sensor-humi</code>, <code class="language-plaintext highlighter-rouge">sensor-light</code></td>
+        <td>Individual sensor subsystems (magnetometer, IMU, MS5607 barometer, BME680, OPT3001 light sensors). <code class="language-plaintext highlighter-rouge">sensors-all</code> enables all of them.</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">sensor-old-baro</code></td>
+        <td>BMP390 barometer on older Kiwi boards. Overrides <code class="language-plaintext highlighter-rouge">sensor-baro</code>, so it can be added on top of the defaults.</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">ble-default</code></td>
+        <td>Boot in Bluetooth LE mode instead of Wi-Fi (see <a href="#radio-modes">Radio Modes</a>).</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">monolithic</code></td>
+        <td>Bake the Wi-Fi/Bluetooth chip firmware blobs into the main image. See <a href="#single-image-firmware">Single-Image Firmware</a>.</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">imu-accel-odr-*</code>, <code class="language-plaintext highlighter-rouge">imu-gyro-odr-*</code></td>
+        <td>IMU accelerometer/gyroscope output data rate, e.g. <code class="language-plaintext highlighter-rouge">imu-accel-odr-100hz</code>.</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">cpuinfo</code></td>
+        <td>Log CPU usage once per second.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>To build without the defaults (for example, to pick sensors individually), add <code class="language-plaintext highlighter-rouge">--no-default-features</code> and list what you need, keeping <code class="language-plaintext highlighter-rouge">dual-core</code> and <code class="language-plaintext highlighter-rouge">defmt</code>:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release --no-default-features --features dual-core,defmt,sensor-mag,sensor-imu
 </span></code></pre></div>  </div>
 
-  <p>See the <a href="https://github.com/chickadee-smallsat/kiwi-firmware/blob/master/firmware/Cargo.toml">firmware Cargo.toml</a> for the full list of available features.</p>
+  <p>See the <a href="https://github.com/chickadee-smallsat/kiwi-firmware/blob/master/firmware/Cargo.toml">firmware Cargo.toml</a> for the full list.</p>
+
+  <h3 id="initial-device-configuration">Initial Device Configuration</h3>
+
+  <p>The device identifier and Wi-Fi settings that a freshly set-up Kiwi starts with are taken from environment variables at build time and written to the device by the <a href="#fix">Wi-Fi firmware flash script</a>:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Variable</th>
+        <th>Default</th>
+        <th>Meaning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">KIWI_DEVICE_ID</code></td>
+        <td><code class="language-plaintext highlighter-rouge">kiwi#0001</code></td>
+        <td>Device identifier (up to 12 characters); also the Bluetooth device name</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">KIWI_WIFI_SSID</code></td>
+        <td><code class="language-plaintext highlighter-rouge">kiwi-ap</code></td>
+        <td>Wi-Fi network name</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">KIWI_WIFI_PASSWORD</code></td>
+        <td><em>(none: open network)</em></td>
+        <td>Wi-Fi password</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">KIWI_WIFI_WPA2</code></td>
+        <td><em>(unset)</em></td>
+        <td>If set, join <code class="language-plaintext highlighter-rouge">KIWI_WIFI_SSID</code> as a client; otherwise host it as an access point</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>These can be changed later without reflashing, over the <a href="#serial-commands">serial interface</a>.</p>
+
+  <h3 id="log-level">Log Level</h3>
+
+  <p>The firmware log level is set at compile time by <code class="language-plaintext highlighter-rouge">DEFMT_LOG</code> in <code class="language-plaintext highlighter-rouge">.cargo/config.toml</code> (default <code class="language-plaintext highlighter-rouge">info</code>).</p>
 
   <h2 id="attaching-to-a-running-target">Attaching to a Running Target</h2>
 
-  <p>To attach <code class="language-plaintext highlighter-rouge">probe-rs</code> to already-running firmware without reflashing:</p>
+  <p>To watch the logs of already-running firmware without reflashing:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">probe-rp-usb watch target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
+</span></code></pre></div>  </div>
+
+  <p><code class="language-plaintext highlighter-rouge">watch</code> reconnects automatically when Kiwi resets; <code class="language-plaintext highlighter-rouge">attach</code> connects once.
+With a debug probe, use <code class="language-plaintext highlighter-rouge">probe-rs attach</code> instead:</p>
 
   <p>Linux / macOS:</p>
   <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>probe-rs attach target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
@@ -479,7 +621,7 @@ This panic means the data at those addresses did not match the checksum baked in
 <span class="go">cargo build --release
 </span></code></pre></div>  </div>
 
-  <p>On Linux / macOS — flash WiFi FW, CLM, credentials, and Bluetooth FW</p>
+  <p>On Linux / macOS — flash WiFi FW, CLM, credentials, and Bluetooth FW over USB (with <code class="language-plaintext highlighter-rouge">probe-rp-usb</code>):</p>
 
   <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./firmware/flash-wifi-fw.sh
 </code></pre></div>  </div>
@@ -489,31 +631,224 @@ This panic means the data at those addresses did not match the checksum baked in
   <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">.\firmware\flash-wifi-fw.bat
 </span></code></pre></div>  </div>
 
-  <p>The script writes the WiFi firmware, CLM blob, device-credentials page, and Bluetooth firmware to the addresses computed by <code class="language-plaintext highlighter-rouge">build.rs</code>. After the script completes, flash the main firmware as usual:</p>
+  <p>With a debug probe, run <code class="language-plaintext highlighter-rouge">flash-wifi-fw-probe-rs.sh</code> (or <code class="language-plaintext highlighter-rouge">.bat</code>) instead.</p>
+
+  <p>The script writes the WiFi firmware, CLM blob, device-credentials page, and Bluetooth firmware to the addresses computed by <code class="language-plaintext highlighter-rouge">build.rs</code>.
+The credentials page holds the <a href="#initial-device-configuration">initial device configuration</a>, so running the script also resets the identifier and Wi-Fi settings.
+After the script completes, flash the main firmware as usual:</p>
 
   <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release
 </span></code></pre></div>  </div>
 
-  <h2 id="building-uf2-firmware">Building UF2 Firmware</h2>
+  <h2 id="single-image-firmware">Single-Image Firmware</h2>
 
-  <p>The <a href="https://github.com/JoNil/elf2uf2-rs"><code class="language-plaintext highlighter-rouge">elf2uf2-rs</code></a> is used to build a UF2 firmware from the compiled ELF firmware file <code class="language-plaintext highlighter-rouge">target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base</code>.</p>
+  <p>The <code class="language-plaintext highlighter-rouge">monolithic</code> feature bakes the Wi-Fi and Bluetooth chip firmware into the main firmware image, so the separate <a href="#fix">Wi-Fi firmware flash script</a> is not needed. Build and flash it like any other build:</p>
 
-  <p>First, install the tool from Git (the last release does not work for Kiwi devices):</p>
-
-  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo install --git https://github.com/JoNil/elf2uf2-rs.git
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release --features monolithic
 </span></code></pre></div>  </div>
 
-  <p>To build the firmware ELF file for UF2 conversion, run:</p>
+  <p>Flashing a single image leaves the stored <a href="#initial-device-configuration">device configuration</a> untouched.</p>
 
-  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo build --release --features compile_uf2
-</span></code></pre></div>  </div>
+  <h2 id="installing-a-prebuilt-release">Installing a Prebuilt Release</h2>
 
-  <p>Finally, create the UF2 firmware blob by running</p>
+  <p>Each <a href="https://github.com/chickadee-smallsat/kiwi-firmware/releases/latest">GitHub release</a> includes a ready-to-flash single-image firmware, <code class="language-plaintext highlighter-rouge">kiwi-firmware.uf2</code>. Installing it needs no tools:</p>
 
-  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">elf2uf2-rs convert -f rp2xxx-absolute target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base kiwi-firmware-base.uf2   
-</span></code></pre></div>  </div>
+  <ol>
+    <li>Hold the <code class="language-plaintext highlighter-rouge">BOOTSEL</code> button (next to the USB port) and connect Kiwi to your computer over USB.</li>
+    <li>Release <code class="language-plaintext highlighter-rouge">BOOTSEL</code> once Kiwi appears as a USB mass-storage drive.</li>
+    <li>Copy <code class="language-plaintext highlighter-rouge">kiwi-firmware.uf2</code> to that drive.</li>
+  </ol>
 
-  <p>Copy the resulting <code class="language-plaintext highlighter-rouge">kiwi-firmware-base.uf2</code> file to the Kiwi, after connecting it to your computer in <code class="language-plaintext highlighter-rouge">BOOTSEL</code> mode (press and hold the <code class="language-plaintext highlighter-rouge">BOOTSEL</code> button on the Kiwi while plugging it into your computer), where the Kiwi appears as a mass-storage device on your computer. The Kiwi should reset after the flash is complete, and re-expose the serial command interface.</p>
+  <p>Kiwi restarts with the new firmware once the copy completes, and exposes its <a href="#serial-commands">serial command interface</a> again.</p>
+
+  <blockquote class="callout-note">
+    <p>The release image does not contain a device configuration. A Kiwi that has never had one stored starts as an open access point named <code class="language-plaintext highlighter-rouge">kiwi-ap</code>, with the identifier <code class="language-plaintext highlighter-rouge">kiwiUF2</code>. Set its identifier and Wi-Fi settings over the <a href="#serial-commands">serial interface</a>.</p>
+  </blockquote>
+
+</section>
+
+<section class="manual-sheet" id="usage">
+
+  <h1 id="using-the-kiwi">Using the Kiwi</h1>
+
+  <p>Once flashed, Kiwi streams every sensor measurement over one radio at a time, Wi-Fi or Bluetooth Low-Energy (BLE), and logs it to a microSD card if one is inserted. It is configured over its USB serial interface.</p>
+
+  <h2 id="radio-modes">Radio Modes</h2>
+
+  <p>Kiwi boots in <strong>Wi-Fi mode</strong> (or in <strong>BLE mode</strong> when built with the <code class="language-plaintext highlighter-rouge">ble-default</code> feature). Press the <code class="language-plaintext highlighter-rouge">BOOTSEL</code> button at any time to switch between the two. Each press toggles the mode, including while Kiwi is still trying to join a Wi-Fi network.</p>
+
+  <h3 id="wi-fi">Wi-Fi</h3>
+
+  <p>Depending on its configuration, Kiwi either hosts its own network or joins a Wi-Fi network:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Configuration</th>
+        <th>Behaviour</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Access point</strong> (<code class="language-plaintext highlighter-rouge">wifi ap</code>)</td>
+        <td>Kiwi hosts a Wi-Fi network on channel 5 (open, or WPA2 with a password). Kiwi’s address on it is <code class="language-plaintext highlighter-rouge">169.254.1.1</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Client</strong> (<code class="language-plaintext highlighter-rouge">wifi cl</code>)</td>
+        <td>Kiwi joins the configured network and gets an address by DHCP.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>If Kiwi cannot join the configured network within 60 seconds, it falls back to hosting an <strong>open access point named after its device identifier</strong>, so it stays reachable.</p>
+
+  <p>In Wi-Fi mode, measurements are broadcast as UDP datagrams to port <strong>8099</strong>, one measurement per datagram (see <a href="#data-format">Data Format</a>).
+In client mode, Kiwi also sends its Wi-Fi signal strength (RSSI) every 2 seconds.</p>
+
+  <h3 id="bluetooth-low-energy-ble">Bluetooth Low Energy (BLE)</h3>
+
+  <p>In BLE mode, Kiwi advertises under its device identifier. Up to <strong>four</strong> clients can connect at the same time without pairing.
+Each client receives every measurement as a notification, along with the signal strength (RSSI) of the BLE link every 2 seconds.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>UUID</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Kiwi data service</td>
+        <td><code class="language-plaintext highlighter-rouge">6b697769-0001-4a6e-8f3b-2c9d5e7a1b00</code></td>
+      </tr>
+      <tr>
+        <td>Measurement characteristic (read, notify)</td>
+        <td><code class="language-plaintext highlighter-rouge">6b697769-0002-4a6e-8f3b-2c9d5e7a1b00</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Subscribe to notifications on the measurement characteristic.
+Each notification carries one or more consecutive measurements (up to five) within the negotiated ATT MTU, so clients must negotiate an MTU of at least 27 bytes.
+A client that cannot keep up loses its oldest measurements; other clients are not affected.</p>
+
+  <h2 id="data-format">Data Format</h2>
+
+  <p>Every measurement, whether sent over UDP, BLE, or written to the microSD card, is a fixed-size <strong>24-byte</strong> <code class="language-plaintext highlighter-rouge">SingleMeasurement</code> record from the <a href="https://crates.io/crates/kiwi-measurements"><code class="language-plaintext highlighter-rouge">kiwi-measurements</code></a> crate, which can decode it. Besides sensor readings, Kiwi sends its device identifier every 15 seconds and signal-strength (RSSI) records, so clients can name the device and show link quality.</p>
+
+  <h2 id="microsd-logging">microSD Logging</h2>
+
+  <p>If a microSD card is inserted, Kiwi records every measurement to it. Each power-on starts a new run directory:</p>
+
+  <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>KIWI/
+  README.TXT      describes this layout
+  00001/          firmware run 1
+    00000.BIN     first data segment
+    00001.BIN     next segment (started after 3 GiB)
+  00002/          firmware run 2 (next power-on)
+</code></pre></div>  </div>
+
+  <p>Each <code class="language-plaintext highlighter-rouge">.BIN</code> file starts with a 256-byte text header, followed by 24-byte measurement records. To parse a file, skip the first 256 bytes, then read every 24 bytes as one record.</p>
+
+  <h2 id="serial-commands">Serial Commands</h2>
+
+  <p>Kiwi appears on your computer as a USB device named <strong>Kiwi Mainboard Rev. B</strong> with two serial ports. The <strong>first</strong> is the command console; the second carries the firmware’s binary log stream (read by <code class="language-plaintext highlighter-rouge">probe-rp-usb</code>). Open the command console with any serial terminal, for example:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>Port</th>
+        <th>Example</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Linux</td>
+        <td><code class="language-plaintext highlighter-rouge">/dev/ttyACM0</code> (first of the pair)</td>
+        <td><code class="language-plaintext highlighter-rouge">screen /dev/ttyACM0</code></td>
+      </tr>
+      <tr>
+        <td>macOS</td>
+        <td><code class="language-plaintext highlighter-rouge">/dev/cu.usbmodem…</code> (first of the pair)</td>
+        <td><code class="language-plaintext highlighter-rouge">screen /dev/cu.usbmodem…</code></td>
+      </tr>
+      <tr>
+        <td>Windows</td>
+        <td><code class="language-plaintext highlighter-rouge">COMn</code> (first of the pair)</td>
+        <td>PuTTY, or the VS Code Serial Monitor</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Kiwi shows a <code class="language-plaintext highlighter-rouge">&gt;</code> prompt. Type a command and press <kbd>Enter</kbd>:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Command</th>
+        <th>Effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">help</code></td>
+        <td>List the available commands</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">version</code></td>
+        <td>Show the firmware version</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">wifi status</code></td>
+        <td>Show the stored configuration and the current data rate</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">ident get</code></td>
+        <td>Show the device identifier</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">ident set &lt;ident&gt;</code></td>
+        <td>Set the device identifier (up to 12 characters)</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">wifi ap &lt;ssid&gt; [password]</code></td>
+        <td>Host an access point named <code class="language-plaintext highlighter-rouge">&lt;ssid&gt;</code>, open if no password is given</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">wifi cl &lt;ssid&gt; [password]</code></td>
+        <td>Join the network <code class="language-plaintext highlighter-rouge">&lt;ssid&gt;</code> as a client, open if no password is given</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">show</code></td>
+        <td>Show the changes made but not yet stored</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">store</code></td>
+        <td>Save the changes to flash and restart Kiwi</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">reset</code></td>
+        <td>Restart Kiwi</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">clear</code></td>
+        <td>Clear the terminal screen</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Passwords must be at least 8 characters. <code class="language-plaintext highlighter-rouge">ident set</code>, <code class="language-plaintext highlighter-rouge">wifi ap</code> and <code class="language-plaintext highlighter-rouge">wifi cl</code> only take effect after <code class="language-plaintext highlighter-rouge">store</code>, which saves them and restarts Kiwi. For example, to join a network called <code class="language-plaintext highlighter-rouge">lab-net</code>:</p>
+
+  <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&gt; wifi cl lab-net mypassword
+&gt; store
+</code></pre></div>  </div>
+
+  <h2 id="client-software">Client Software</h2>
+
+  <p><a href="https://github.com/chickadee-smallsat/kiwi-mainboard-clients/releases/latest">Kiwi Plotter</a> is a desktop app for Linux, Windows, and macOS that receives data from Kiwi devices over both Wi-Fi and BLE, plots it live, and exports it to CSV or Excel files.
+To write your own client, listen for UDP datagrams on port 8099 or subscribe to the BLE characteristic above, and decode the records with <code class="language-plaintext highlighter-rouge">kiwi-measurements</code>.</p>
 
 </section>
 

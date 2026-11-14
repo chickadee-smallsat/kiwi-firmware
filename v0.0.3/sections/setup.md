@@ -63,25 +63,88 @@ rustup target list --installed | Select-String thumbv8m
 
 ## Building and Flashing
 
-Connect your debug probe to the Kiwi, then run:
+By default, `cargo run` flashes Kiwi over its USB connection with [`probe-rp-usb`](https://github.com/sunipkm/probe-rp-usb).
+No debug probe is needed.
+Install it once:
+
+Linux (the USB serial support needs libudev):
+```sh
+sudo apt install libudev-dev pkg-config   # Debian/Ubuntu; use your distribution's equivalent
+cargo install probe-rp-usb
+```
+
+macOS / Windows:
+```console
+cargo install probe-rp-usb
+```
+
+Connect Kiwi to your computer over USB, then run:
 
 ```console
 cargo run --release
 ```
 
-This builds the firmware in release mode and flashes it via `probe-rs`. RTT/defmt log output is streamed to the terminal automatically.
+This builds the firmware in release mode, resets the running Kiwi into its `BOOTSEL` bootloader over USB, flashes the new firmware, and then streams the firmware's defmt log output from the USB serial port to the terminal. If Kiwi is not running firmware that answers the USB reset request (for example, a new board), hold `BOOTSEL` while plugging it in first.
 
-To enable specific sensor subsystems, pass the relevant feature flags:
+### Using a Debug Probe Instead
 
-```console
-cargo run --release --features sensors-all
+To flash and stream logs through a `probe-rs` debug probe instead, switch the runner in `.cargo/config.toml`: comment out the `probe-rp-usb` runner line and uncomment the `probe-rs` one:
+
+```toml
+# runner = "probe-rp-usb run --family rp2xxx-absolute"
+runner = "probe-rs run --chip RP235x --protocol swd"
 ```
 
-See the [firmware Cargo.toml]({{ site.github.repository_url }}/blob/master/firmware/Cargo.toml) for the full list of available features.
+## Build Options
+
+Firmware features are selected with Cargo feature flags.
+
+The default build enables all current sensors (`sensors-all`), dual-core operation, and 50 Hz IMU data rates. Commonly used flags:
+
+| Feature | Effect |
+|---------|--------|
+| `sensor-mag`, `sensor-imu`, `sensor-baro`, `sensor-humi`, `sensor-light` | Individual sensor subsystems (magnetometer, IMU, MS5607 barometer, BME680, OPT3001 light sensors). `sensors-all` enables all of them. |
+| `sensor-old-baro` | BMP390 barometer on older Kiwi boards. Overrides `sensor-baro`, so it can be added on top of the defaults. |
+| `ble-default` | Boot in Bluetooth LE mode instead of Wi-Fi (see [Radio Modes](#radio-modes)). |
+| `monolithic` | Bake the Wi-Fi/Bluetooth chip firmware blobs into the main image. See [Single-Image Firmware](#single-image-firmware). |
+| `imu-accel-odr-*`, `imu-gyro-odr-*` | IMU accelerometer/gyroscope output data rate, e.g. `imu-accel-odr-100hz`. |
+| `cpuinfo` | Log CPU usage once per second. |
+
+To build without the defaults (for example, to pick sensors individually), add `--no-default-features` and list what you need, keeping `dual-core` and `defmt`:
+
+```console
+cargo run --release --no-default-features --features dual-core,defmt,sensor-mag,sensor-imu
+```
+
+See the [firmware Cargo.toml]({{ site.github.repository_url }}/blob/master/firmware/Cargo.toml) for the full list.
+
+### Initial Device Configuration
+
+The device identifier and Wi-Fi settings that a freshly set-up Kiwi starts with are taken from environment variables at build time and written to the device by the [Wi-Fi firmware flash script](#fix):
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `KIWI_DEVICE_ID` | `kiwi#0001` | Device identifier (up to 12 characters); also the Bluetooth device name |
+| `KIWI_WIFI_SSID` | `kiwi-ap` | Wi-Fi network name |
+| `KIWI_WIFI_PASSWORD` | *(none: open network)* | Wi-Fi password |
+| `KIWI_WIFI_WPA2` | *(unset)* | If set, join `KIWI_WIFI_SSID` as a client; otherwise host it as an access point |
+
+These can be changed later without reflashing, over the [serial interface](#serial-commands).
+
+### Log Level
+
+The firmware log level is set at compile time by `DEFMT_LOG` in `.cargo/config.toml` (default `info`).
 
 ## Attaching to a Running Target
 
-To attach `probe-rs` to already-running firmware without reflashing:
+To watch the logs of already-running firmware without reflashing:
+
+```console
+probe-rp-usb watch target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
+```
+
+`watch` reconnects automatically when Kiwi resets; `attach` connects once.
+With a debug probe, use `probe-rs attach` instead:
 
 Linux / macOS:
 ```sh
@@ -114,7 +177,7 @@ Build the project once so the helper flash script is generated, then run it **be
 cargo build --release
 ```
 
-On Linux / macOS — flash WiFi FW, CLM, credentials, and Bluetooth FW
+On Linux / macOS — flash WiFi FW, CLM, credentials, and Bluetooth FW over USB (with `probe-rp-usb`):
 
 ```sh
 ./firmware/flash-wifi-fw.sh
@@ -126,34 +189,37 @@ On Windows:
 .\firmware\flash-wifi-fw.bat
 ```
 
-The script writes the WiFi firmware, CLM blob, device-credentials page, and Bluetooth firmware to the addresses computed by `build.rs`. After the script completes, flash the main firmware as usual:
+With a debug probe, run `flash-wifi-fw-probe-rs.sh` (or `.bat`) instead.
+
+The script writes the WiFi firmware, CLM blob, device-credentials page, and Bluetooth firmware to the addresses computed by `build.rs`.
+The credentials page holds the [initial device configuration](#initial-device-configuration), so running the script also resets the identifier and Wi-Fi settings.
+After the script completes, flash the main firmware as usual:
 
 ```console
 cargo run --release
 ```
 
-## Building UF2 Firmware
+## Single-Image Firmware
 
-The [`elf2uf2-rs`](https://github.com/JoNil/elf2uf2-rs) is used to build a UF2 firmware from the compiled ELF firmware file `target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base`.
-
-First, install the tool from Git (the last release does not work for Kiwi devices):
+The `monolithic` feature bakes the Wi-Fi and Bluetooth chip firmware into the main firmware image, so the separate [Wi-Fi firmware flash script](#fix) is not needed. Build and flash it like any other build:
 
 ```console
-cargo install --git https://github.com/JoNil/elf2uf2-rs.git
+cargo run --release --features monolithic
 ```
 
-To build the firmware ELF file for UF2 conversion, run:
+Flashing a single image leaves the stored [device configuration](#initial-device-configuration) untouched.
 
-```console
-cargo build --release --features compile_uf2
-```
+## Installing a Prebuilt Release
 
-Finally, create the UF2 firmware blob by running
+Each [GitHub release]({{ site.github.repository_url }}/releases/latest) includes a ready-to-flash single-image firmware, `kiwi-firmware.uf2`. Installing it needs no tools:
 
-```console
-elf2uf2-rs convert -f rp2xxx-absolute target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base kiwi-firmware-base.uf2   
-```
+1. Hold the `BOOTSEL` button (next to the USB port) and connect Kiwi to your computer over USB.
+2. Release `BOOTSEL` once Kiwi appears as a USB mass-storage drive.
+3. Copy `kiwi-firmware.uf2` to that drive.
 
-Copy the resulting `kiwi-firmware-base.uf2` file to the Kiwi, after connecting it to your computer in `BOOTSEL` mode (press and hold the `BOOTSEL` button on the Kiwi while plugging it into your computer), where the Kiwi appears as a mass-storage device on your computer. The Kiwi should reset after the flash is complete, and re-expose the serial command interface.
+Kiwi restarts with the new firmware once the copy completes, and exposes its [serial command interface](#serial-commands) again.
+
+> The release image does not contain a device configuration. A Kiwi that has never had one stored starts as an open access point named `kiwi-ap`, with the identifier `kiwiUF2`. Set its identifier and Wi-Fi settings over the [serial interface](#serial-commands).
+{: .callout-note }
 
 </section>

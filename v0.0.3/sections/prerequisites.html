@@ -89,9 +89,13 @@
 
   <ul>
     <li><strong>Kiwi</strong> (based on the <a href="https://pip-assets.raspberrypi.com/categories/1214-rp2350/documents/RP-008373-DS-2-rp2350-datasheet.pdf">Raspberry Pi RP2350B</a>)</li>
-    <li>A supported <strong>debug probe</strong> — any probe compatible with <code class="language-plaintext highlighter-rouge">probe-rs</code> (e.g. <a href="https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html">Raspberry Pi Debug Probe</a>, J-Link, CMSIS-DAP). Using the Raspberry Pi Debug Probe is recommended to access the on-board <a href="https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-/Introduction-to-the-ARM-Serial-Wire-Debug--SWD--protocol">ARM Serial Wire Debugging interface</a> (not provided).</li>
-    <li>Cable to connect the debug probe to Kiwi (not provided)</li>
+    <li>A <strong>USB cable</strong> to connect Kiwi to your computer</li>
+    <li><em>Optional:</em> a supported <strong>debug probe</strong> — any probe compatible with <code class="language-plaintext highlighter-rouge">probe-rs</code> (e.g. <a href="https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html">Raspberry Pi Debug Probe</a>, J-Link, CMSIS-DAP), and a cable to connect it to Kiwi (neither provided). Using the Raspberry Pi Debug Probe is recommended to access the on-board <a href="https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-/Introduction-to-the-ARM-Serial-Wire-Debug--SWD--protocol">ARM Serial Wire Debugging interface</a>.</li>
   </ul>
+
+  <blockquote class="callout-note">
+    <p>Flashing and log streaming work over the USB cable alone (see <a href="#building-and-flashing">Building and Flashing</a>). A debug probe adds on-chip debugging (breakpoints, stepping, inspecting variables), and lets you recover a board whose firmware no longer brings up USB.</p>
+  </blockquote>
 
   <h2 id="software-dependencies-installed-by-the-setup-script">Software Dependencies Installed by the Setup Script</h2>
 
@@ -123,6 +127,9 @@
       </tr>
     </tbody>
   </table>
+
+  <p>The default USB flashing tool, <a href="https://github.com/sunipkm/probe-rp-usb"><code class="language-plaintext highlighter-rouge">probe-rp-usb</code></a>, is not installed by the setup scripts.
+Install it with <code class="language-plaintext highlighter-rouge">cargo install probe-rp-usb</code> (see <a href="#building-and-flashing">Building and Flashing</a>).</p>
 
   <h3 id="additional-linux-step">Additional Linux Step</h3>
 

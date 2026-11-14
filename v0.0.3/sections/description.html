@@ -51,17 +51,21 @@
   <h1 id="description">Description</h1>
 
   <p>This document covers the <strong>Kiwi Firmware</strong> — embedded firmware for Kiwi. 
-The firmware is written in the <a href="https://rust-lang.org">Rust Programming Language</a><span class="cite-ref" data-ref="rust-book"></span> using the <a href="https://embassy.dev">Embassy</a><span class="cite-ref" data-ref="embassy"></span> async framework and provides sensor acquisition, Wi-Fi access-point streaming, USB configuration, and hardware watchdog functionality.
+The firmware is written in the <a href="https://rust-lang.org">Rust Programming Language</a><span class="cite-ref" data-ref="rust-book"></span> using the <a href="https://embassy.dev">Embassy</a><span class="cite-ref" data-ref="embassy"></span> async framework and provides sensor acquisition, measurement streaming over Wi-Fi or Bluetooth Low-Energy (BLE), microSD logging, USB configuration, and hardware watchdog functionality.
 It targets Kiwi<span class="cite-ref" data-ref="kiwi-hw"></span> based on the Raspberry Pi RP2350B.</p>
 
   <h2 id="key-features">Key Features</h2>
 
   <ul>
-    <li>Async sensor tasks for magnetometer (MMC5983MA), IMU (BMI323), barometer (MS5607), and environmental sensor (BME680)</li>
-    <li>Wi-Fi access point/client mode with UDP measurement streaming via <code class="language-plaintext highlighter-rouge">embassy-net</code></li>
-    <li>USB HID/CDC interface for configuration</li>
+    <li>Async sensor tasks for the magnetometer (MMC5983MA), IMU (BMI323), barometer (MS5607, or BMP390 on older boards), environmental sensor (BME680), and two ambient light sensors (OPT3001, top and bottom)</li>
+    <li>Measurement streaming over Wi-Fi (UDP broadcast) as an access point or a network client, falling back to an access point if the configured network cannot be joined</li>
+    <li>Measurement streaming over BLE to up to four clients at once, with no pairing required</li>
+    <li>The <code class="language-plaintext highlighter-rouge">BOOTSEL</code> button switches between Wi-Fi and BLE at any time</li>
+    <li>Measurement logging to a microSD card</li>
+    <li>USB serial interface for configuration, with firmware logs forwarded over the same USB connection</li>
     <li>Per-task hardware watchdog with reset-reason logging</li>
-    <li>Compile-time sensor selection via Cargo feature flags</li>
+    <li>Optional dual-core operation and CPU-usage reporting</li>
+    <li>Compile-time selection of sensors, default radio mode, and more via Cargo feature flags</li>
     <li><code class="language-plaintext highlighter-rouge">no_std</code> sensor driver library crates for reuse in derived projects</li>
   </ul>
 

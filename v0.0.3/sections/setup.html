@@ -107,23 +107,133 @@ The script installs udev rules automatically. If you need to do this manually:</
 
   <h2 id="building-and-flashing">Building and Flashing</h2>
 
-  <p>Connect your debug probe to the Kiwi, then run:</p>
+  <p>By default, <code class="language-plaintext highlighter-rouge">cargo run</code> flashes Kiwi over its USB connection with <a href="https://github.com/sunipkm/probe-rp-usb"><code class="language-plaintext highlighter-rouge">probe-rp-usb</code></a>.
+No debug probe is needed.
+Install it once:</p>
+
+  <p>Linux (the USB serial support needs libudev):</p>
+  <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>apt <span class="nb">install </span>libudev-dev pkg-config   <span class="c"># Debian/Ubuntu; use your distribution's equivalent</span>
+cargo <span class="nb">install </span>probe-rp-usb
+</code></pre></div>  </div>
+
+  <p>macOS / Windows:</p>
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo install probe-rp-usb
+</span></code></pre></div>  </div>
+
+  <p>Connect Kiwi to your computer over USB, then run:</p>
 
   <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release
 </span></code></pre></div>  </div>
 
-  <p>This builds the firmware in release mode and flashes it via <code class="language-plaintext highlighter-rouge">probe-rs</code>. RTT/defmt log output is streamed to the terminal automatically.</p>
+  <p>This builds the firmware in release mode, resets the running Kiwi into its <code class="language-plaintext highlighter-rouge">BOOTSEL</code> bootloader over USB, flashes the new firmware, and then streams the firmware’s defmt log output from the USB serial port to the terminal. If Kiwi is not running firmware that answers the USB reset request (for example, a new board), hold <code class="language-plaintext highlighter-rouge">BOOTSEL</code> while plugging it in first.</p>
 
-  <p>To enable specific sensor subsystems, pass the relevant feature flags:</p>
+  <h3 id="using-a-debug-probe-instead">Using a Debug Probe Instead</h3>
 
-  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release --features sensors-all
+  <p>To flash and stream logs through a <code class="language-plaintext highlighter-rouge">probe-rs</code> debug probe instead, switch the runner in <code class="language-plaintext highlighter-rouge">.cargo/config.toml</code>: comment out the <code class="language-plaintext highlighter-rouge">probe-rp-usb</code> runner line and uncomment the <code class="language-plaintext highlighter-rouge">probe-rs</code> one:</p>
+
+  <div class="language-toml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># runner = "probe-rp-usb run --family rp2xxx-absolute"</span>
+<span class="py">runner</span> <span class="p">=</span> <span class="s">"probe-rs run --chip RP235x --protocol swd"</span>
+</code></pre></div>  </div>
+
+  <h2 id="build-options">Build Options</h2>
+
+  <p>Firmware features are selected with Cargo feature flags.</p>
+
+  <p>The default build enables all current sensors (<code class="language-plaintext highlighter-rouge">sensors-all</code>), dual-core operation, and 50 Hz IMU data rates. Commonly used flags:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">sensor-mag</code>, <code class="language-plaintext highlighter-rouge">sensor-imu</code>, <code class="language-plaintext highlighter-rouge">sensor-baro</code>, <code class="language-plaintext highlighter-rouge">sensor-humi</code>, <code class="language-plaintext highlighter-rouge">sensor-light</code></td>
+        <td>Individual sensor subsystems (magnetometer, IMU, MS5607 barometer, BME680, OPT3001 light sensors). <code class="language-plaintext highlighter-rouge">sensors-all</code> enables all of them.</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">sensor-old-baro</code></td>
+        <td>BMP390 barometer on older Kiwi boards. Overrides <code class="language-plaintext highlighter-rouge">sensor-baro</code>, so it can be added on top of the defaults.</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">ble-default</code></td>
+        <td>Boot in Bluetooth LE mode instead of Wi-Fi (see <a href="#radio-modes">Radio Modes</a>).</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">monolithic</code></td>
+        <td>Bake the Wi-Fi/Bluetooth chip firmware blobs into the main image. See <a href="#single-image-firmware">Single-Image Firmware</a>.</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">imu-accel-odr-*</code>, <code class="language-plaintext highlighter-rouge">imu-gyro-odr-*</code></td>
+        <td>IMU accelerometer/gyroscope output data rate, e.g. <code class="language-plaintext highlighter-rouge">imu-accel-odr-100hz</code>.</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">cpuinfo</code></td>
+        <td>Log CPU usage once per second.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>To build without the defaults (for example, to pick sensors individually), add <code class="language-plaintext highlighter-rouge">--no-default-features</code> and list what you need, keeping <code class="language-plaintext highlighter-rouge">dual-core</code> and <code class="language-plaintext highlighter-rouge">defmt</code>:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release --no-default-features --features dual-core,defmt,sensor-mag,sensor-imu
 </span></code></pre></div>  </div>
 
-  <p>See the <a href="https://github.com/chickadee-smallsat/kiwi-firmware/blob/master/firmware/Cargo.toml">firmware Cargo.toml</a> for the full list of available features.</p>
+  <p>See the <a href="https://github.com/chickadee-smallsat/kiwi-firmware/blob/master/firmware/Cargo.toml">firmware Cargo.toml</a> for the full list.</p>
+
+  <h3 id="initial-device-configuration">Initial Device Configuration</h3>
+
+  <p>The device identifier and Wi-Fi settings that a freshly set-up Kiwi starts with are taken from environment variables at build time and written to the device by the <a href="#fix">Wi-Fi firmware flash script</a>:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Variable</th>
+        <th>Default</th>
+        <th>Meaning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">KIWI_DEVICE_ID</code></td>
+        <td><code class="language-plaintext highlighter-rouge">kiwi#0001</code></td>
+        <td>Device identifier (up to 12 characters); also the Bluetooth device name</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">KIWI_WIFI_SSID</code></td>
+        <td><code class="language-plaintext highlighter-rouge">kiwi-ap</code></td>
+        <td>Wi-Fi network name</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">KIWI_WIFI_PASSWORD</code></td>
+        <td><em>(none: open network)</em></td>
+        <td>Wi-Fi password</td>
+      </tr>
+      <tr>
+        <td><code class="language-plaintext highlighter-rouge">KIWI_WIFI_WPA2</code></td>
+        <td><em>(unset)</em></td>
+        <td>If set, join <code class="language-plaintext highlighter-rouge">KIWI_WIFI_SSID</code> as a client; otherwise host it as an access point</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>These can be changed later without reflashing, over the <a href="#serial-commands">serial interface</a>.</p>
+
+  <h3 id="log-level">Log Level</h3>
+
+  <p>The firmware log level is set at compile time by <code class="language-plaintext highlighter-rouge">DEFMT_LOG</code> in <code class="language-plaintext highlighter-rouge">.cargo/config.toml</code> (default <code class="language-plaintext highlighter-rouge">info</code>).</p>
 
   <h2 id="attaching-to-a-running-target">Attaching to a Running Target</h2>
 
-  <p>To attach <code class="language-plaintext highlighter-rouge">probe-rs</code> to already-running firmware without reflashing:</p>
+  <p>To watch the logs of already-running firmware without reflashing:</p>
+
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">probe-rp-usb watch target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
+</span></code></pre></div>  </div>
+
+  <p><code class="language-plaintext highlighter-rouge">watch</code> reconnects automatically when Kiwi resets; <code class="language-plaintext highlighter-rouge">attach</code> connects once.
+With a debug probe, use <code class="language-plaintext highlighter-rouge">probe-rs attach</code> instead:</p>
 
   <p>Linux / macOS:</p>
   <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>probe-rs attach target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
@@ -155,7 +265,7 @@ This panic means the data at those addresses did not match the checksum baked in
 <span class="go">cargo build --release
 </span></code></pre></div>  </div>
 
-  <p>On Linux / macOS — flash WiFi FW, CLM, credentials, and Bluetooth FW</p>
+  <p>On Linux / macOS — flash WiFi FW, CLM, credentials, and Bluetooth FW over USB (with <code class="language-plaintext highlighter-rouge">probe-rp-usb</code>):</p>
 
   <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./firmware/flash-wifi-fw.sh
 </code></pre></div>  </div>
@@ -165,31 +275,39 @@ This panic means the data at those addresses did not match the checksum baked in
   <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">.\firmware\flash-wifi-fw.bat
 </span></code></pre></div>  </div>
 
-  <p>The script writes the WiFi firmware, CLM blob, device-credentials page, and Bluetooth firmware to the addresses computed by <code class="language-plaintext highlighter-rouge">build.rs</code>. After the script completes, flash the main firmware as usual:</p>
+  <p>With a debug probe, run <code class="language-plaintext highlighter-rouge">flash-wifi-fw-probe-rs.sh</code> (or <code class="language-plaintext highlighter-rouge">.bat</code>) instead.</p>
+
+  <p>The script writes the WiFi firmware, CLM blob, device-credentials page, and Bluetooth firmware to the addresses computed by <code class="language-plaintext highlighter-rouge">build.rs</code>.
+The credentials page holds the <a href="#initial-device-configuration">initial device configuration</a>, so running the script also resets the identifier and Wi-Fi settings.
+After the script completes, flash the main firmware as usual:</p>
 
   <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release
 </span></code></pre></div>  </div>
 
-  <h2 id="building-uf2-firmware">Building UF2 Firmware</h2>
+  <h2 id="single-image-firmware">Single-Image Firmware</h2>
 
-  <p>The <a href="https://github.com/JoNil/elf2uf2-rs"><code class="language-plaintext highlighter-rouge">elf2uf2-rs</code></a> is used to build a UF2 firmware from the compiled ELF firmware file <code class="language-plaintext highlighter-rouge">target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base</code>.</p>
+  <p>The <code class="language-plaintext highlighter-rouge">monolithic</code> feature bakes the Wi-Fi and Bluetooth chip firmware into the main firmware image, so the separate <a href="#fix">Wi-Fi firmware flash script</a> is not needed. Build and flash it like any other build:</p>
 
-  <p>First, install the tool from Git (the last release does not work for Kiwi devices):</p>
-
-  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo install --git https://github.com/JoNil/elf2uf2-rs.git
+  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo run --release --features monolithic
 </span></code></pre></div>  </div>
 
-  <p>To build the firmware ELF file for UF2 conversion, run:</p>
+  <p>Flashing a single image leaves the stored <a href="#initial-device-configuration">device configuration</a> untouched.</p>
 
-  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">cargo build --release --features compile_uf2
-</span></code></pre></div>  </div>
+  <h2 id="installing-a-prebuilt-release">Installing a Prebuilt Release</h2>
 
-  <p>Finally, create the UF2 firmware blob by running</p>
+  <p>Each <a href="https://github.com/chickadee-smallsat/kiwi-firmware/releases/latest">GitHub release</a> includes a ready-to-flash single-image firmware, <code class="language-plaintext highlighter-rouge">kiwi-firmware.uf2</code>. Installing it needs no tools:</p>
 
-  <div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">elf2uf2-rs convert -f rp2xxx-absolute target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base kiwi-firmware-base.uf2   
-</span></code></pre></div>  </div>
+  <ol>
+    <li>Hold the <code class="language-plaintext highlighter-rouge">BOOTSEL</code> button (next to the USB port) and connect Kiwi to your computer over USB.</li>
+    <li>Release <code class="language-plaintext highlighter-rouge">BOOTSEL</code> once Kiwi appears as a USB mass-storage drive.</li>
+    <li>Copy <code class="language-plaintext highlighter-rouge">kiwi-firmware.uf2</code> to that drive.</li>
+  </ol>
 
-  <p>Copy the resulting <code class="language-plaintext highlighter-rouge">kiwi-firmware-base.uf2</code> file to the Kiwi, after connecting it to your computer in <code class="language-plaintext highlighter-rouge">BOOTSEL</code> mode (press and hold the <code class="language-plaintext highlighter-rouge">BOOTSEL</code> button on the Kiwi while plugging it into your computer), where the Kiwi appears as a mass-storage device on your computer. The Kiwi should reset after the flash is complete, and re-expose the serial command interface.</p>
+  <p>Kiwi restarts with the new firmware once the copy completes, and exposes its <a href="#serial-commands">serial command interface</a> again.</p>
+
+  <blockquote class="callout-note">
+    <p>The release image does not contain a device configuration. A Kiwi that has never had one stored starts as an open access point named <code class="language-plaintext highlighter-rouge">kiwi-ap</code>, with the identifier <code class="language-plaintext highlighter-rouge">kiwiUF2</code>. Set its identifier and Wi-Fi settings over the <a href="#serial-commands">serial interface</a>.</p>
+  </blockquote>
 
 </section>
 
