@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap">
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", system-ui, -apple-system, sans-serif;
+      background: #0f1824;
+      color: #e6f2f8;
+    }
+
+    .viewer {
+      padding: 12px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0 10px;
+    }
+
+    .toolbar button {
+      border: 1px solid rgba(185, 213, 226, 0.4);
+      background: rgba(185, 213, 226, 0.1);
+      color: #e6f2f8;
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+
+    .toolbar button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .page {
+      display: block;
+      width: min(100%, 1000px);
+      margin: 0 auto 12px;
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      background: #fff;
+    }
+
+    .status {
+      padding: 12px;
+      text-align: center;
+      color: #b9d5e2;
+    }
+  </style>
+</head>
+<body>
+  <div id="status" class="status">Loading PDF...</div>
+  <div id="toolbar" class="toolbar" hidden>
+    <button id="prev" type="button" aria-label="Previous page">Prev</button>
+    <span id="page-indicator">Page 1 / 1</span>
+    <button id="next" type="button" aria-label="Next page">Next</button>
+  </div>
+  <div id="viewer" class="viewer" aria-live="polite"></div>
+
+  <script type="module">
+    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.mjs";
+
+    const statusEl = document.getElementById("status");
+    const toolbarEl = document.getElementById("toolbar");
+    const prevEl = document.getElementById("prev");
+    const nextEl = document.getElementById("next");
+    const indicatorEl = document.getElementById("page-indicator");
+    const viewerEl = document.getElementById("viewer");
+    const params = new URLSearchParams(window.location.search);
+    const fileParam = params.get("file");
+
+    if (!fileParam) {
+      statusEl.textContent = "No PDF path was provided.";
+      throw new Error("Missing file parameter");
+    }
+
+    const pdfPath = decodeURIComponent(fileParam);
+
+    const reportHeight = () => {
+      const statusHeight = statusEl && statusEl.isConnected ? statusEl.offsetHeight : 0;
+      const toolbarHeight = toolbarEl && !toolbarEl.hidden ? toolbarEl.offsetHeight : 0;
+      const viewerHeight = viewerEl ? viewerEl.scrollHeight : 0;
+      const height = statusHeight + toolbarHeight + viewerHeight + 24;
+      window.parent.postMessage({ type: "pdf-resize", height }, "*");
+    };
+
+    let pdfDoc = null;
+    let currentPage = 1;
+    let lastRenderWidth = 0;
+
+    const setControls = () => {
+      indicatorEl.textContent = `Page ${currentPage} / ${pdfDoc.numPages}`;
+      prevEl.disabled = currentPage <= 1;
+      nextEl.disabled = currentPage >= pdfDoc.numPages;
+    };
+
+    const renderPage = async () => {
+      viewerEl.innerHTML = "";
+      lastRenderWidth = window.innerWidth;
+      const page = await pdfDoc.getPage(currentPage);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const containerWidth = Math.min(window.innerWidth - 24, 1000);
+      const scale = containerWidth / baseViewport.width;
+      const viewport = page.getViewport({ scale });
+
+      const canvas = document.createElement("canvas");
+      canvas.className = "page";
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      const context = canvas.getContext("2d", { alpha: false });
+      await page.render({ canvasContext: context, viewport }).promise;
+      viewerEl.appendChild(canvas);
+
+      setControls();
+      reportHeight();
+    };
+
+    const render = async () => {
+      try {
+        const loadingTask = pdfjsLib.getDocument(pdfPath);
+        pdfDoc = await loadingTask.promise;
+        toolbarEl.hidden = false;
+        await renderPage();
+        statusEl.remove();
+        reportHeight();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Unable to render PDF in this browser. Use the Open link below the viewer.";
+        reportHeight();
+      }
+    };
+
+    prevEl.addEventListener("click", async () => {
+      if (!pdfDoc || currentPage <= 1) return;
+      currentPage -= 1;
+      await renderPage();
+    });
+
+    nextEl.addEventListener("click", async () => {
+      if (!pdfDoc || currentPage >= pdfDoc.numPages) return;
+      currentPage += 1;
+      await renderPage();
+    });
+
+    window.addEventListener("resize", async () => {
+      // Ignore height-only iframe resizes from parent to avoid a resize feedback loop.
+      if (pdfDoc && Math.abs(window.innerWidth - lastRenderWidth) > 8) {
+        await renderPage();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

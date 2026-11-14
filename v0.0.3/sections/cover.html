@@ -1,0 +1,15 @@
+<section class="cover-hero" aria-labelledby="cover-title">
+  <div class="cover-hero__panel">
+    <div class="cover-hero__topline">
+      <h1 id="cover-title" class="cover-hero__word">{{ site.cover_title | default: "TITLE" }}</h1>
+      <p class="cover-hero__title-block">{{ site.cover_subtitle | default: "Project Documentation" }}</p>
+    </div>
+    <div class="cover-hero__artframe" aria-hidden="true">
+      <div class="cover-hero__artbackdrop"></div>
+      {% if site.cover_logo %}
+      <img class="cover-hero__bird" src="{{ site.cover_logo | relative_url }}" alt="">
+      {% endif %}
+    </div>
+    <p class="cover-hero__manual">MANUAL</p>
+  </div>
+</section>
