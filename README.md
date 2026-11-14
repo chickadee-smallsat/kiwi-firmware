@@ -41,7 +41,12 @@ Sensor subsystems are enabled at compile time via Cargo features (see below).
    sudo install rules/*.rules /etc/udev/rules.d
    sudo udevadm control --reload-rules && sudo udevadm trigger
    ```
-3. Connect a debug probe, then build and flash:
+3. Install [`probe-rp-usb`](https://github.com/sunipkm/probe-rp-usb), which flashes Kiwi and streams its logs over USB:
+   ```sh
+   sudo apt install libudev-dev pkg-config   # Debian/Ubuntu; use your distribution's equivalent
+   cargo install probe-rp-usb
+   ```
+4. Connect Kiwi over USB, then build and flash:
    ```sh
    cargo run --release
    ```
@@ -52,7 +57,11 @@ Sensor subsystems are enabled at compile time via Cargo features (see below).
    ```powershell
    .\setup.ps1
    ```
-2. Build and flash:
+2. Install [`probe-rp-usb`](https://github.com/sunipkm/probe-rp-usb), which flashes Kiwi and streams its logs over USB:
+   ```cmd
+   cargo install probe-rp-usb
+   ```
+3. Connect Kiwi over USB, then build and flash:
    ```cmd
    cargo run --release
    ```
@@ -67,43 +76,32 @@ The device boots in WiFi mode (UDP broadcast) by default. Pressing the BOOTSEL b
 cargo run --release --features ble-default
 ```
 
-## Debugging with `probe-rs`
+## Viewing Logs
 
-Attach to a running target (RTT + defmt logging):
+`cargo run` streams the firmware's logs after flashing. To watch the logs of already-running firmware without reflashing (reconnecting automatically when Kiwi resets):
 ```sh
-# Linux
-probe-rs attach target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
-
-# Windows
-probe-rs attach target\thumbv8m.main-none-eabihf\release\kiwi-firmware-base
+probe-rp-usb watch target/thumbv8m.main-none-eabihf/release/kiwi-firmware-base
 ```
 
-## Building UF2 Image
+To use a `probe-rs` debug probe instead (for on-chip debugging), switch the `runner` in `.cargo/config.toml` to the `probe-rs` line.
 
-While `probe-rs` is the preferred method of flashing the Kiwi, it is also possible to build a UF2 image of the firmware and deploy it to your Kiwi.
-1. Install `elf2uf2-rs` from source:
-   ```sh
-   cargo install --git https://github.com/JoNil/elf2uf2-rs  # Install the tool from the source repository
-   ```
+## Single-Image Firmware
 
-2. Prepare the firmware for the UF2 image (at the root of the `kiwi-firmware` repository):
-   ```sh
-   cargo build --release --features compile_uf2  # Build the firmware with the UF2 compilation feature enabled
-   ```
+The `monolithic` feature bakes the Wi-Fi/Bluetooth chip firmware into the main image, so the separate `flash-wifi-fw` script is not needed. Build and flash it like any other build:
+```sh
+cargo run --release --features monolithic
+```
 
-3. Build the UF2 image:
-   ```sh
-   elf2uf2-rs convert --family rp2xxx-absolute target/release/kiwi-firmware-base kiwi-firmware.uf2  # Convert the ELF firmware to a UF2 image
-   ```
+## Installing a Prebuilt Release
 
-4. Flash the UF2 image:
-   1. Hold the `BOOTSEL` button (next to the USB port) and connect the Kiwi to your computer via USB.
-   2. Release the `BOOTSEL` button once the Kiwi appears as a USB mass storage device.
-   3. Copy the `kiwi-firmware.uf2` file to the Kiwi USB mass storage device.
-   4. The Kiwi will automatically reboot with the new firmware.
-   
-   > [!NOTE]
-   > You may need to configure the Wi-Fi settings using the serial interface after flashing the UF2 image.
+Each [GitHub release](https://github.com/chickadee-smallsat/kiwi-firmware/releases/latest) includes a ready-to-flash single-image firmware, `kiwi-firmware.uf2`. No tools are needed:
+1. Hold the `BOOTSEL` button (next to the USB port) and connect the Kiwi to your computer via USB.
+2. Release the `BOOTSEL` button once the Kiwi appears as a USB mass storage device.
+3. Copy `kiwi-firmware.uf2` to the Kiwi USB mass storage device.
+4. The Kiwi will automatically reboot with the new firmware.
+
+> [!NOTE]
+> You may need to configure the Wi-Fi settings using the serial interface after flashing the release image.
 
 ## Drivers
 

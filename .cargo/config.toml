@@ -5,10 +5,8 @@ runner = "probe-rp-usb run --family rp2xxx-absolute" # RP2350x and RP2040
 # If you are not using the Raspberry Pi Debug Probe, comment out the probe-rs runner and uncomment the picotool runner for Raspberry Pi Pico.
 # runner = "probe-rs run --chip RP235x --protocol swd" 
 
-# Uncomment this if you want to use the elf2uf2-rs tool for deploying the firmware to a Raspberry Pi Pico instead of using probe-rs.
-# You have to install elf2uf2-rs from source.
-# Pass in the uf2 compilation flag: cargo run --release --features compile_uf2
-# runner = "elf2uf2-rs deploy -t -s --family rp2xxx-absolute" 
+# For a single image that does not need the separate flash-wifi-fw script, add the
+# monolithic feature (embeds the WiFi/BT blobs): cargo run --release --features monolithic
 
 # Alternative runner for Raspberry Pi Pico, using picotool. Uncomment this line and comment the probe-rs line to use this runner.
 # runner = "picotool load -u -v -x --force"
