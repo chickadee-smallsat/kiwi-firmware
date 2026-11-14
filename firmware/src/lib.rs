@@ -4,6 +4,7 @@
 use embassy_sync::{
     blocking_mutex::raw::CriticalSectionRawMutex,
     channel::{Channel, Receiver, Sender},
+    mutex::Mutex,
 };
 use kiwi_measurements::SingleMeasurement;
 
@@ -13,6 +14,9 @@ pub const DEFAULT_WIFI_HOST_AP: &str = "kiwi-ap";
 pub const DEFAULT_DEVICE_NAME: &str = "kiwiUF2";
 /// Size of the channel buffer for transmitting `SingleMeasurement` data between tasks.
 pub const MEASUREMENT_CHANNEL_SIZE: usize = 32;
+/// Mutex-protected global variable to store the device ID as a heapless string with a maximum length of 32 characters.
+pub static DEVICE_ID: Mutex<CriticalSectionRawMutex, heapless::String<12>> =
+    Mutex::new(heapless::String::new());
 
 /// Type alias for a channel that transmits `SingleMeasurement` data between tasks, using a critical section mutex for synchronization and a defined buffer size.
 pub type MeasurementChannel =

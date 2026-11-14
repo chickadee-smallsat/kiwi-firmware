@@ -4,9 +4,9 @@
 **/.DS_Store
 
 # Project specific
-**/src/wifi_fw_consts.rs
-**/flash-wifi-fw.sh
-**/flash-wifi-fw.bat
+**/src/*fw_consts.rs
+**/flash-wifi-fw*.sh
+**/flash-wifi-fw*.bat
 **/wifi_creds.bin
 .kiwi_*
 *.uf2

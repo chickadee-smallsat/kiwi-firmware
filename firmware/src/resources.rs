@@ -1,5 +1,5 @@
 use assign_resources::assign_resources;
-use embassy_rp::peripherals::{DMA_CH0, DMA_CH1, I2C0, PIO0, USB};
+use embassy_rp::peripherals::{DMA_CH0, DMA_CH1, DMA_CH2, DMA_CH3, I2C0, PIO0, USB};
 use embassy_rp::{Peri, bind_interrupts, peripherals};
 use embassy_rp::{
     dma::InterruptHandler as DmaIrqHandler, i2c::InterruptHandler as I2cIrqHandler,
@@ -52,6 +52,52 @@ assign_resources! {
         /// PIO instance for gSPI
         pio: PIO0,
     }
+
+    /// BOOTSEL button (multiplexed onto the QSPI flash CS line)
+    bootsel: BootselDev {
+        /// BOOTSEL peripheral token
+        bootsel: BOOTSEL,
+    }
+
+    /// Resources for the SD card interface
+    mmc: MmcPins {
+        /// SD card SPI CS pin
+        cs: PIN_13,
+        /// SD card SPI CMD pin
+        dout: PIN_15,
+        /// SD card SPI data input pin
+        din: PIN_12,
+        /// SD card SPI CLK pin
+        ck: PIN_14,
+        /// SD card card detect pin
+        cd: PIN_35,
+        /// SD card SPI interface
+        spi: SPI1,
+    }
+
+    /// Resources for the CAN interface
+    can: CanDev {
+        /// Reset pin (active low)
+        rst: PIN_16,
+        /// CS pin (active low)
+        cs: PIN_17,
+        /// SPI clk
+        clk: PIN_18,
+        /// SPI data output pin
+        tx: PIN_19,
+        /// SPI data input pin
+        rx: PIN_20,
+        /// CAN refclk pin
+        refclk: PIN_21,
+        /// CAN interrupt pin
+        irq: PIN_26,
+        /// SPI peripheral for the CAN interface
+        spi: SPI0,
+        /// DMA channel for the CAN SPI interface's TX transfers
+        dma_tx: DMA_CH2,
+        /// DMA channel for the CAN SPI interface's RX transfers
+        dma_rx: DMA_CH3,
+    }
 }
 
 /// Type alias for the WiFi SPI interface using the assigned PIO and DMA resources.
@@ -63,5 +109,5 @@ bind_interrupts!(
     I2C0_IRQ => I2cIrqHandler<I2C0>;
     PIO0_IRQ_0 => PioIrqHandler<PIO0>;
     USBCTRL_IRQ => UsbIrqHandler<USB>;
-    DMA_IRQ_0 => DmaIrqHandler<DMA_CH0>, DmaIrqHandler<DMA_CH1>;
+    DMA_IRQ_0 => DmaIrqHandler<DMA_CH0>, DmaIrqHandler<DMA_CH1>, DmaIrqHandler<DMA_CH2>, DmaIrqHandler<DMA_CH3>;
 });

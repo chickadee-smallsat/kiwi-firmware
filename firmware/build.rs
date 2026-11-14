@@ -23,6 +23,23 @@ macro_rules! warn {
     }
 }
 
+/// Convert a count of days since the Unix epoch to a proleptic Gregorian
+/// (year, 1-indexed month, 1-indexed day) triple.
+/// Algorithm: <https://howardhinnant.github.io/date_algorithms.html>
+fn unix_days_to_ymd(days: i64) -> (i32, u32, u32) {
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = (z - era * 146_097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
+    let y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    (y as i32, m as u32, d as u32)
+}
+
 const KIWI_DEVICE_ID_ENV: &str = "KIWI_DEVICE_ID";
 const WIFI_SSID_ENV: &str = "KIWI_WIFI_SSID";
 const WIFI_PASSWORD_ENV: &str = "KIWI_WIFI_PASSWORD";
@@ -65,13 +82,23 @@ fn main() {
         ident: device_id,
         wifi: wifi_conf,
     };
-    // Paths
-    let firmware_path = PathBuf::from("../cyw43-firmware/43439A0.bin");
-    let clm_path = PathBuf::from("../cyw43-firmware/43439A0_clm.bin");
-    let memx_path = PathBuf::from("../config/memory.x.template");
     // Manifest directory, i.e. the directory containing Cargo.toml
     let manifest_dir_str = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
     let curdir = PathBuf::from(manifest_dir_str);
+    // Paths
+    let firmware_path = curdir
+        .join("../cyw43-firmware/43439A0.bin")
+        .canonicalize()
+        .expect("Failed to resolve WiFi firmware path");
+    let clm_path = curdir
+        .join("../cyw43-firmware/43439A0_clm.bin")
+        .canonicalize()
+        .expect("Failed to resolve WiFi CLM path");
+    let btfw_path = curdir
+        .join("../cyw43-firmware/43439A0_btfw.bin")
+        .canonicalize()
+        .expect("Failed to resolve Bluetooth firmware path");
+    let memx_path = curdir.join("../config/memory.x.template");
     // Calculate WiFi firmware and CLM CRCs and lengths
     let wifi_fw = std::fs::read(&firmware_path).expect("Failed to read WiFi firmware");
     let wifi_fw_len = wifi_fw.len();
@@ -79,6 +106,9 @@ fn main() {
     let wifi_clm = std::fs::read(&clm_path).expect("Failed to read WiFi CLM");
     let wifi_clm_len = wifi_clm.len();
     let wifi_clm_crc = CrcState::calculate(&wifi_clm);
+    let bt_fw = std::fs::read(&btfw_path).expect("Failed to read Bluetooth firmware");
+    let bt_fw_len = bt_fw.len();
+    let bt_fw_crc = CrcState::calculate(&bt_fw);
 
     // Read the template memory.x file
     let memx = std::fs::read_to_string(&memx_path).expect("Failed to read memory.x.template");
@@ -107,6 +137,13 @@ fn main() {
             "Not enough flash memory for WiFi firmware and credentials! Larger flash size required."
         );
     }
+    // Bluetooth firmware goes right below the credentials page, so the WiFi
+    // firmware, CLM and credentials keep their addresses.
+    let bt_fw_ofst = (wifi_creds_ofst - bt_fw_len) & !(BLOCK_SIZE - 1); // align to 4K
+    let bt_fw_addr = bt_fw_ofst + mem_base;
+    if bt_fw_ofst < BLOCK_SIZE {
+        panic!("Not enough flash memory for Bluetooth firmware! Larger flash size required.");
+    }
     // Create WiFi credentials blob
     let wifi_creds = device_conf.to_bytes();
     // Calculate WiFi credentials CRC
@@ -127,16 +164,32 @@ fn main() {
         .write_all(&wifi_creds)
         .unwrap();
 
-    // Calculate free memory before the WiFi firmware blobs
-    let free_mem = (wifi_fw_ofst - BLOCK_SIZE) & !(BLOCK_SIZE - 1); // align to 4K
-    if free_mem + mem_base > wifi_creds_addr {
+    // Calculate free memory before the firmware blobs
+    let free_mem = bt_fw_ofst & !(BLOCK_SIZE - 1); // align to 4K
+    if free_mem + mem_base > bt_fw_addr {
         panic!(
             "Not enough free flash memory before WiFi firmware and credentials! Larger flash size required."
         );
     }
 
-    // Write to src/wifi_fw_consts.rs
-    File::create(curdir.join("src").join("wifi_fw_consts.rs"))
+    // Build date — used as the FAT timestamp on created files and directories.
+    // Honours SOURCE_DATE_EPOCH for reproducible builds; falls back to now().
+    let epoch_secs = env::var("SOURCE_DATE_EPOCH")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or_else(|| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+        });
+    let (build_year, build_month, build_day) = unix_days_to_ymd((epoch_secs / 86400) as i64);
+    let build_year_since_1970 = (build_year - 1970).max(0) as u8;
+    let build_zero_indexed_month = (build_month - 1) as u8;
+    let build_zero_indexed_day = (build_day - 1) as u8;
+
+    // Write to src/fw_consts.rs
+    File::create(curdir.join("src").join("fw_consts.rs"))
         .unwrap()
         .write_all(
             format!(
@@ -154,6 +207,12 @@ pub const WIFI_CLM_ADDR: usize = 0x{wifi_clm_addr:x};
 pub const WIFI_CLM_LEN: usize = {wifi_clm_len};
 /// CRC16/XMODEM of the WiFi Control Mode blob
 pub const WIFI_CLM_CRC: u16 = 0x{wifi_clm_crc:04X};
+/// Base address where the Bluetooth firmware blob is stored in flash
+pub const BT_FW_ADDR: usize = 0x{bt_fw_addr:x};
+/// Length of the Bluetooth firmware blob in bytes
+pub const BT_FW_LEN: usize = {bt_fw_len};
+/// CRC16/XMODEM of the Bluetooth firmware blob
+pub const BT_FW_CRC: u16 = 0x{bt_fw_crc:04X};
 
 /// Base address where the WiFi credentials blob is stored in flash
 pub const WIFI_CREDS_ADDR: usize = 0x{wifi_creds_addr:x};
@@ -165,8 +224,15 @@ pub const WIFI_CREDS_OFST: u32 = 0x{wifi_creds_ofst:x};
 /// the WiFi firmware, but allows writing the WiFi credentials.
 pub const FLASH_SIZE: usize = 0x{wifi_fw_ofst:x};
 
-/// Free flash memory before WiFi firmware and credentials in bytes
+/// Free flash memory before the Bluetooth firmware, credentials and WiFi firmware in bytes
 pub const FREE_FLASH_SIZE: usize = 0x{free_mem:x};
+
+/// Build date year since 1970, used as the embedded_sdmmc file-system timestamp.
+pub const BUILD_YEAR_SINCE_1970: u8 = {build_year_since_1970};
+/// Build date zero-indexed month (0 = January, …, 11 = December).
+pub const BUILD_ZERO_INDEXED_MONTH: u8 = {build_zero_indexed_month};
+/// Build date zero-indexed day of month (0 = 1st, …, 30 = 31st).
+pub const BUILD_ZERO_INDEXED_DAY: u8 = {build_zero_indexed_day};
 ",
             )
             .as_bytes(),
@@ -186,23 +252,29 @@ pub const FREE_FLASH_SIZE: usize = 0x{free_mem:x};
         .unwrap();
 
     // Build the WiFi firmware flasher
-    #[cfg(target_family = "unix")]
+    #[cfg(not(target_family = "windows"))]
     {
         use std::{fs::OpenOptions, os::unix::fs::OpenOptionsExt};
         let flasher = curdir.join("flash-wifi-fw.sh");
+        let probe_rs_flasher = curdir.join("flash-wifi-fw-probe-rs.sh");
         if !flasher.exists() {
             warn!(
-                "Creating flash-wifi-fw.sh script to flash WiFi firmware, CLM, and credentials. Run this script BEFORE flashing the main firmware."
+                "Creating flash-wifi-fw.sh script to flash WiFi firmware, CLM, credentials, and Bluetooth firmware. Run this script BEFORE flashing the main firmware."
+            );
+        }
+        if !probe_rs_flasher.exists() {
+            warn!(
+                "Creating flash-wifi-fw-probe-rs.sh fallback script to flash WiFi firmware, CLM, and credentials with probe-rs."
             );
         }
         let flash_cmd = format!(
             "#!/bin/sh\n\
             set -e\n\
-            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_fw_addr:x}\n\
-            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_clm_addr:x}\n\
-            probe-rs download wifi_creds.bin --binary-format bin --chip RP235x --base-address 0x{wifi_creds_addr:x}\n",
+            probe-rp-usb write --no-wait --erase-boot --family rp2xxx-absolute --base 0x{mem_base:x} {}@0x{wifi_fw_ofst:x} {}@0x{wifi_clm_ofst:x} {}@0x{wifi_creds_ofst:x} {}@0x{bt_fw_ofst:x}\n",
             firmware_path.display(),
             clm_path.display(),
+            curdir.join("wifi_creds.bin").display(),
+            btfw_path.display(),
         );
         OpenOptions::new()
             .mode(0o754)
@@ -213,28 +285,71 @@ pub const FREE_FLASH_SIZE: usize = 0x{free_mem:x};
             .unwrap()
             .write_all(flash_cmd.as_bytes())
             .unwrap();
+        let probe_rs_flash_cmd = format!(
+            "#!/bin/sh\n\
+            set -e\n\
+            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_fw_addr:x}\n\
+            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_clm_addr:x}\n\
+            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_creds_addr:x}\n\
+            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{bt_fw_addr:x}\n",
+            firmware_path.display(),
+            clm_path.display(),
+            curdir.join("wifi_creds.bin").display(),
+            btfw_path.display(),
+        );
+        OpenOptions::new()
+            .mode(0o754)
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(probe_rs_flasher)
+            .unwrap()
+            .write_all(probe_rs_flash_cmd.as_bytes())
+            .unwrap();
     }
     // For Windows, just create a .bat file (not tested)
     #[cfg(target_family = "windows")]
     {
         let flasher = curdir.join("flash-wifi-fw.bat");
+        let probe_rs_flasher = curdir.join("flash-wifi-fw-probe-rs.bat");
         if !flasher.exists() {
             warn!(
                 "Creating flash-wifi-fw.bat script to flash WiFi firmware, CLM, and credentials. Run this script BEFORE flashing the main firmware."
             );
         }
+        if !probe_rs_flasher.exists() {
+            warn!(
+                "Creating flash-wifi-fw-probe-rs.bat fallback script to flash WiFi firmware, CLM, and credentials with probe-rs."
+            );
+        }
         let flash_cmd = format!(
             "@echo off\r\n\
             setlocal enabledelayedexpansion\r\n\
-            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_fw_addr:x}\r\n\
-            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_clm_addr:x}\r\n\
-            probe-rs download wifi_creds.bin --binary-format bin --chip RP235x --base-address 0x{wifi_creds_addr:x}\r\n",
+            probe-rp-usb write --no-wait --erase-boot --family rp2xxx-absolute --base 0x{mem_base:x} {}@0x{wifi_fw_ofst:x} {}@0x{wifi_clm_ofst:x} {}@0x{wifi_creds_ofst:x} {}@0x{bt_fw_ofst:x}\r\n",
             firmware_path.display(),
             clm_path.display(),
+            curdir.join("wifi_creds.bin").display(),
+            btfw_path.display(),
         );
         File::create(flasher)
             .unwrap()
             .write_all(flash_cmd.as_bytes())
+            .unwrap();
+        let probe_rs_flash_cmd = format!(
+            "@echo off\r\n\
+            setlocal enabledelayedexpansion\r\n\
+            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_fw_addr:x}\r\n\
+            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_clm_addr:x}\r\n\
+            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{wifi_creds_addr:x}\r\n\
+            probe-rs download {} --binary-format bin --chip RP235x --base-address 0x{bt_fw_addr:x}\r\n",
+            firmware_path.display(),
+            clm_path.display(),
+            curdir.join("wifi_creds.bin").display(),
+            btfw_path.display(),
+        );
+        File::create(probe_rs_flasher)
+            .unwrap()
+            .write_all(probe_rs_flash_cmd.as_bytes())
             .unwrap();
     }
     // Tell cargo to tell rustc to link the memory.x file
@@ -247,7 +362,11 @@ pub const FREE_FLASH_SIZE: usize = 0x{free_mem:x};
     println!("cargo:rerun-if-changed=../../config/memory.x.template");
     println!("cargo:rerun-if-changed={}", firmware_path.display());
     println!("cargo:rerun-if-changed={}", clm_path.display());
+    println!("cargo:rerun-if-changed={}", btfw_path.display());
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=flash-wifi-fw.sh");
+    println!("cargo:rerun-if-changed=flash-wifi-fw-probe-rs.sh");
     println!("cargo:rerun-if-changed=flash-wifi-fw.bat");
+    println!("cargo:rerun-if-changed=flash-wifi-fw-probe-rs.bat");
+    println!("cargo:rerun-if-env-changed=SOURCE_DATE_EPOCH");
 }

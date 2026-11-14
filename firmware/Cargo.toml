@@ -6,8 +6,8 @@ edition = "2024"
 [dependencies]
 embassy-embedded-hal = { version = "0.6", features = ["defmt"] }
 embassy-sync = { version = "0.8", features = ["defmt"] }
-embassy-executor = { version = "0.9", features = [
-    "arch-cortex-m",
+embassy-executor = { version = "0.10", features = [
+    "platform-cortex-m",
     "executor-thread",
     "executor-interrupt",
     "defmt",
@@ -38,12 +38,24 @@ embassy-rp = { version = "0.10", features = [
 ] }
 embassy-usb = { version = "0.6" }
 embassy-futures = { version = "0.1" }
-embassy-usb-logger = { version = "0.6" }
-cyw43 = { version = "0.7.0" }
+cyw43 = { version = "0.7.0", features = ["defmt", "bluetooth"] }
 cyw43-pio = { version = "0.10.0" }
+trouble-host = { version = "0.6.0", default-features = false, features = [
+    "defmt",
+    "peripheral",
+    "gatt",
+    "derive",
+    "default-packet-pool",
+    "default-packet-pool-mtu-128",
+    "default-packet-pool-size-64",
+    "l2cap-tx-queue-size-32",
+] }
+bt-hci = { version = "0.8", features = ["defmt"] }
+# trouble-host 0.6 is built on embassy-sync 0.7, and its GATT macros emit
+# `embassy_sync::` paths; ble.rs aliases this crate in under that name.
+embassy-sync-07 = { package = "embassy-sync", version = "0.7" }
 
 defmt = "1.0"
-defmt-rtt = "1.1"
 fixed = "1.23"
 fixed-macro = "1.2"
 cortex-m = { version = "0.7.6", features = ["inline-asm"] }
@@ -56,19 +68,26 @@ usbd-hid = "0.10"
 rand_core = "0.10"
 embedded-hal-1 = { package = "embedded-hal", version = "1.0" }
 embedded-hal-async = "1.0"
-embedded-hal-bus = { version = "0.3", features = ["async"] }
+embedded-hal-bus = { version = "0.3", features = ["async", "defmt-03"] }
 embedded-io-async = { version = "0.7", features = ["defmt"] }
 embedded-storage = { version = "0.3" }
 static_cell = "2.1.1"
 portable-atomic = { version = "1.13", features = ["critical-section"] }
-log = "0.4"
 rand = { version = "0.10", default-features = false }
-embedded-sdmmc = "0.9"
-mcp25xx = { version = "0.4", features = ["mcp25625"] }
+embedded-sdmmc = { version = "0.9" }
 assign-resources = { git = "https://github.com/adamgreig/assign-resources", rev = "bd22cb7a92031fb16f74a5da42469d466c33383e" }
 crc16 = "0.4"
 dtoa = { version = "1.0" }
-embassy-task-watchdog = { version = "0.0.9", features = ["defmt", "rp", "defmt-messages"] }
+embassy-defmt-usb = { version = "0.0.2", features = ["global-logger"] }
+embassy-task-watchdog = { version = "0.1.0", features = [
+    "defmt",
+    "rp",
+    "defmt-messages",
+] }
+embassy-cpu-usage = { path = '../embassy-cpu-usage', features = [
+    "defmt",
+    "trace-hooks",
+], optional = true }
 uom = { workspace = true, default-features = false, features = [
     "f32",
     "si",
@@ -76,22 +95,57 @@ uom = { workspace = true, default-features = false, features = [
 ] }
 
 device-blob = { workspace = true, features = ["defmt"] }
-mmc5983ma = { workspace = true, features = ["defmt", "async", "float"] }
-bmi323-rs = { workspace = true, features = ["float", "defmt", "async", "defmt-messages"] }
-bmp390-rs = { workspace = true, features = ["defmt", "float", "async"] }
+rp-usb-reset = { workspace = true }
+mmc5983ma = { workspace = true, features = [
+    "defmt",
+    "async",
+    "float",
+    "defmt-messages",
+] }
+bmi323-rs = { workspace = true, features = [
+    "float",
+    "defmt",
+    "async",
+    "defmt-messages",
+] }
+bmp390-rs = { workspace = true, features = [
+    "defmt",
+    "float",
+    "async",
+    "defmt-messages",
+] }
 ms5607-rs = { workspace = true, features = ["defmt", "async", "float"] }
-bme680-rs = { workspace = true, features = ["defmt"] }
+bme680-rs = { workspace = true, features = ["defmt", "defmt-messages"] }
+opt3001-rs = { workspace = true, features = [
+    "defmt",
+    "async",
+    "float",
+    "defmt-messages",
+] }
+
 kiwi-measurements = { workspace = true, features = ["defmt"] }
 libm = { workspace = true, default-features = false }
-kmdparse = "0.0.2"
+kmdparse = "0.0.3"
 
 [features]
+cpuinfo = ["dep:embassy-cpu-usage", "embassy-executor/trace"]
+dual-core = []
 defmt = []
 sensor-mag = []
 sensor-imu = []
 sensor-baro = []
 sensor-humi = []
-sensors-all = ["sensor-mag", "sensor-imu", "sensor-baro", "sensor-humi"]
+sensor-light = []
+# Older Kiwi barometer; overrides `sensor-baro` when both are enabled
+sensor-old-baro = []
+
+sensors-all = [
+    "sensor-mag",
+    "sensor-imu",
+    "sensor-baro",
+    "sensor-humi",
+    "sensor-light",
+]
 # Accelerometer output data rate (mutually exclusive; default: imu-accel-odr-50hz)
 imu-accel-odr-0hz78 = ["sensor-imu"]
 imu-accel-odr-1hz56 = ["sensor-imu"]
@@ -118,8 +172,15 @@ imu-gyro-odr-200hz = ["sensor-imu"]
 imu-gyro-odr-400hz = ["sensor-imu"]
 imu-gyro-odr-800hz = ["sensor-imu"]
 imu-gyro-odr-1600hz = ["sensor-imu"]
-compile_uf2 = []
-default = ["defmt", "sensors-all", "imu-accel-odr-50hz", "imu-gyro-odr-50hz"]
+monolithic = []
+ble-default = []
+default = [
+    "dual-core",
+    "defmt",
+    "sensors-all",
+    "imu-accel-odr-50hz",
+    "imu-gyro-odr-50hz",
+]
 
 [build-dependencies]
 crc16 = "0.4"

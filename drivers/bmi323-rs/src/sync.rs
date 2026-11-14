@@ -12,7 +12,7 @@ use crate::{
     AccelMode, AccelRange, Bmi323Error, Bmi323Sync, GyroMode, Measurement, MeasurementRaw3D,
     SelfCalibrateType, MAX_LOOPS,
 };
-use crate::{debug, info, trace, warn};
+use crate::{debug, trace, warn};
 use core::sync::atomic::Ordering;
 use embedded_hal::{delay::DelayNs, i2c, spi};
 
@@ -259,7 +259,7 @@ where
             // Step up if saturated — measurement is clipped and must be discarded
             if sat.acc_x() || sat.acc_y() || sat.acc_z() {
                 if let Some(next) = cur_accel_range.step_up() {
-                    info!("Accel saturated: range {:?} -> {:?}", cur_accel_range, next);
+                    trace!("Accel saturated: range {:?} -> {:?}", cur_accel_range, next);
                     let mut accel_cfg = AccelConfig::read_register(&mut self.iface)?;
                     accel_cfg.set_range(next);
                     accel_cfg.write_register(&mut self.iface)?;
@@ -271,7 +271,7 @@ where
             }
             if sat.gyr_x() || sat.gyr_y() || sat.gyr_z() {
                 if let Some(next) = cur_gyro_range.step_up() {
-                    info!("Gyro saturated: range {:?} -> {:?}", cur_gyro_range, next);
+                    trace!("Gyro saturated: range {:?} -> {:?}", cur_gyro_range, next);
                     let mut gyro_cfg = GyroConfig::read_register(&mut self.iface)?;
                     gyro_cfg.set_range(next);
                     gyro_cfg.write_register(&mut self.iface)?;
@@ -304,9 +304,10 @@ where
                         .saturating_add(1);
                     if ctr >= accel_hysteresis {
                         if let Some(next) = cur_accel_range.step_down() {
-                            info!(
+                            trace!(
                                 "Accel under-range: range {:?} -> {:?}",
-                                cur_accel_range, next
+                                cur_accel_range,
+                                next
                             );
                             let mut accel_cfg = AccelConfig::read_register(&mut self.iface)?;
                             accel_cfg.set_range(next);
@@ -333,7 +334,7 @@ where
                         .saturating_add(1);
                     if ctr >= gyro_hysteresis {
                         if let Some(next) = cur_gyro_range.step_down() {
-                            info!("Gyro under-range: range {:?} -> {:?}", cur_gyro_range, next);
+                            trace!("Gyro under-range: range {:?} -> {:?}", cur_gyro_range, next);
                             let mut gyro_cfg = GyroConfig::read_register(&mut self.iface)?;
                             gyro_cfg.set_range(next);
                             gyro_cfg.write_register(&mut self.iface)?;

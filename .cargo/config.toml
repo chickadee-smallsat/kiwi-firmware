@@ -1,8 +1,9 @@
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-# Default runner for ARM Cortex-M microcontrollers using probe-rs. 
+# Default runner using probe-rp-usb.
+runner = "probe-rp-usb run --family rp2xxx-absolute" # RP2350x and RP2040
 # This is suitable for Kiwi. 
 # If you are not using the Raspberry Pi Debug Probe, comment out the probe-rs runner and uncomment the picotool runner for Raspberry Pi Pico.
-runner = "probe-rs run --chip RP235x --protocol swd" 
+# runner = "probe-rs run --chip RP235x --protocol swd" 
 
 # Uncomment this if you want to use the elf2uf2-rs tool for deploying the firmware to a Raspberry Pi Pico instead of using probe-rs.
 # You have to install elf2uf2-rs from source.
@@ -27,5 +28,8 @@ rustflags = [
 ]
 
 [env]
-DEFMT_LOG = "info" # Set the default log level for defmt
-EMBASSY_TASK_WATCHDOG_MAX_TASKS = "6" # Set the maximum number of tasks for the Embassy task watchdog
+# cyw43::runner warns on every non-0x886c packet on the event channel, which
+# the reference drivers (brcmfmac, WHD) silently drop; keep only its errors.
+DEFMT_LOG = "info,cyw43::runner=error" # Set the default log level for defmt
+EMBASSY_TASK_WATCHDOG_MAX_TASKS = "8" # Set the maximum number of tasks for the Embassy task watchdog
+EMBASSY_USB_MAX_INTERFACE_COUNT = "8" # Set the maximum number of USB interfaces for the Embassy USB stack

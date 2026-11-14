@@ -18,6 +18,18 @@ pub struct MagMeasurement {
     pub z: MagneticFluxDensity,
 }
 
+impl core::fmt::Display for MagMeasurement {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "MagMeasurement {{ x: {} mG, y: {} mG, z: {} mG }}",
+            self.x.get::<gauss>() * 1e3,
+            self.y.get::<gauss>() * 1e3,
+            self.z.get::<gauss>() * 1e3
+        )
+    }
+}
+
 impl Default for MagMeasurement {
     fn default() -> Self {
         Self {

@@ -135,13 +135,9 @@ impl defmt::Format for WifiConf {
 pub fn load_device_config(base: usize) -> Result<DeviceConfig, &'static str> {
     // 1. Build slice & check magic bytes
     let wifi_creds = unsafe { core::slice::from_raw_parts(base as *const u8, BLOCK_SIZE) };
-    match DeviceConfig::from_bytes(wifi_creds) {
-        Ok(config) => Ok(config),
-        Err(e) => {
-            warn!("Failed to parse WiFi credentials from flash: {}", e);
-            Err(e)
-        }
-    }
+    DeviceConfig::from_bytes(wifi_creds).inspect_err(|_e| {
+        warn!("Failed to parse WiFi credentials from flash: {}", _e);
+    })
 }
 
 impl DeviceConfig {

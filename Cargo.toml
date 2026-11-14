@@ -1,19 +1,25 @@
 [workspace]
 resolver = "2"
 members = [
+    "chat-firmware",
     "device-blob",
     "drivers/bme680-rs",
     "drivers/bmi323-rs",
     "drivers/bmp390-rs",
+    "drivers/mcp25625",
     "drivers/mmc5983ma",
     "drivers/ms5607-rs",
+    "drivers/opt3001-rs",
     "firmware",
+    "ping-firmware",
+    "embassy-cpu-usage",
 ]
 default-members = ["firmware"]
 
 [workspace.dependencies]
 bitfield-struct = "0.13"
-defmt = { version = "1.0" }
+defmt = { version = "1.1" }
+log = { version = "0.4", default-features = false }
 libm = { version = "0.2", default-features = false }
 embassy-sync = { version = "0.8" }
 embedded-hal = { version = "1.0" }
@@ -22,10 +28,14 @@ uom = { version = "0.38", default-features = false }
 bme680-rs = { path = "drivers/bme680-rs", default-features = false }
 bmi323-rs = { path = "drivers/bmi323-rs", default-features = false }
 bmp390-rs = { path = "drivers/bmp390-rs", default-features = false }
+mcp25625 = { path = "drivers/mcp25625", default-features = false }
 mmc5983ma = { path = "drivers/mmc5983ma", default-features = false }
 ms5607-rs = { path = "drivers/ms5607-rs", default-features = false }
-kiwi-measurements = { version = "0.2", default-features = false }
+opt3001-rs = { path = "drivers/opt3001-rs", default-features = false }
+kiwi-measurements = { version = "0.3", default-features = false }
 device-blob = { path = "device-blob", default-features = false }
+rp-usb-reset = { version = "0.0.1" }
+embassy-cpu-usage = { path = "embassy-cpu-usage" }
 
 [profile.release]
 debug = 0

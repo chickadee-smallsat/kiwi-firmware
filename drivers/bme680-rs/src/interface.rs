@@ -1,6 +1,4 @@
-use embedded_hal_async::{
-    i2c::I2c,
-};
+use embedded_hal_async::i2c::I2c;
 
 #[allow(async_fn_in_trait)]
 pub(crate) trait Interface {
@@ -38,13 +36,21 @@ where
 }
 
 pub(crate) trait ReadPrimitive<E> {
-    async fn read_primitive<IFACE: Interface<Error = E>>(iface: &mut IFACE, reg: u8) -> Result<Self, E> where Self: Sized;
+    async fn read_primitive<IFACE: Interface<Error = E>>(
+        iface: &mut IFACE,
+        reg: u8,
+    ) -> Result<Self, E>
+    where
+        Self: Sized;
 }
 
 macro_rules! impl_read_primitive {
     ($ty:ty) => {
         impl<E> ReadPrimitive<E> for $ty {
-            async fn read_primitive<IFACE: Interface<Error = E>>(iface: &mut IFACE, reg: u8) -> Result<Self, E> {
+            async fn read_primitive<IFACE: Interface<Error = E>>(
+                iface: &mut IFACE,
+                reg: u8,
+            ) -> Result<Self, E> {
                 let mut buf = [0u8; core::mem::size_of::<$ty>()];
                 iface.read_registers(reg, &mut buf).await?;
                 Ok(Self::from_le_bytes(buf.try_into().unwrap()))

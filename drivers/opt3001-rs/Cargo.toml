@@ -1,0 +1,31 @@
+[package]
+name = "opt3001-rs"
+version = "0.0.1"
+edition = "2024"
+readme = "README.md"
+authors = ["Sunip K. Mukherjee <sunipkmukherjee@gmail.com>"]
+license = "Apache-2.0"
+keywords = ["light-sensor", "embedded-hal-driver", "no_std", "async"]
+categories = ["embedded", "hardware-support", "no-std"]
+documentation = "https://docs.rs/opt3001-rs"
+description = "Platform agnostic Rust driver for the TI OPT3001 ambient light sensor."
+
+include = ["/**/*.rs", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE"]
+
+[dependencies]
+defmt = { workspace = true, optional = true }
+embedded-hal = { workspace = true, optional = true }
+embedded-hal-async = { workspace = true, optional = true }
+uom = { workspace = true, features = [
+    "f32",
+    "si",
+    "autoconvert",
+], optional = true }
+
+[features]
+default = ["defmt-messages", "async", "sync"]
+defmt = ["dep:defmt"]
+defmt-messages = ["defmt"]
+sync = ["dep:embedded-hal"]
+async = ["dep:embedded-hal-async"]
+float = ["dep:uom"]

@@ -57,24 +57,15 @@ Sensor subsystems are enabled at compile time via Cargo features (see below).
    cargo run --release
    ```
 
-## Sensor Feature Flags
-
-Enable sensor subsystems by passing features to Cargo:
-
-| Feature        | Sensor                         |
-|---------------|-------------------------------|
-| `sensor-mag`   | MMC5983MA magnetometer         |
-| `sensor-imu`   | BMI323 accelerometer/gyroscope |
-| `sensor-baro`  | BMP390 barometer               |
-| `sensor-humi`  | BME680 temp/humidity/gas       |
-| `sensors-all`  | All four of the above          |
-
-Example — build with all sensors:
-```sh
-cargo build --release --features sensors-all
-```
-
 IMU output data rates can be fine-tuned with additional features such as `imu-accel-odr-100hz` and `imu-gyro-odr-50hz`. See `firmware/Cargo.toml` for the full list.
+
+## Radio Mode
+
+The device boots in WiFi mode (UDP broadcast) by default. Pressing the BOOTSEL button switches between WiFi and Bluetooth LE. To boot in Bluetooth LE mode instead, enable the `ble-default` feature:
+
+```sh
+cargo run --release --features ble-default
+```
 
 ## Debugging with `probe-rs`
 
@@ -118,13 +109,13 @@ While `probe-rs` is the preferred method of flashing the Kiwi, it is also possib
 
 Each driver lives in `drivers/` and has its own README:
 
-| Crate | Sensor | Interfaces | Modes |
-|-------|--------|-----------|-------|
-| [`bme680-rs`](drivers/bme680-rs/README.md) | Bosch BME680 | I²C | async |
-| [`bmi323-rs`](drivers/bmi323-rs/README.md) | Bosch BMI323 | I²C, SPI | sync, async |
-| [`bmp390-rs`](drivers/bmp390-rs/README.md) | Bosch BMP390 | I²C, SPI | sync, async |
-| [`mmc5983ma`](drivers/mmc5983ma/README.md) | MEMSIC MMC5983MA | I²C, SPI | sync, async |
-| [`ms5607-rs`](drivers/ms5607-rs/README.md) | TE MS5607 | I²C, SPI | sync, async |
+| Crate                                      | Sensor           | Interfaces | Modes       |
+| ------------------------------------------ | ---------------- | ---------- | ----------- |
+| [`bme680-rs`](drivers/bme680-rs/README.md) | Bosch BME680     | I²C        | async       |
+| [`bmi323-rs`](drivers/bmi323-rs/README.md) | Bosch BMI323     | I²C, SPI   | sync, async |
+| [`bmp390-rs`](drivers/bmp390-rs/README.md) | Bosch BMP390     | I²C, SPI   | sync, async |
+| [`mmc5983ma`](drivers/mmc5983ma/README.md) | MEMSIC MMC5983MA | I²C, SPI   | sync, async |
+| [`ms5607-rs`](drivers/ms5607-rs/README.md) | TE MS5607        | I²C, SPI   | sync, async |
 
 ## Resources
 

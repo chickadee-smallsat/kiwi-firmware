@@ -1,0 +1,66 @@
+[package]
+name = "mcp25625"
+version = "0.0.1"
+edition = "2021"
+readme = "README.md"
+authors = ["Sunip K. Mukherjee <sunipkmukherjee@gmail.com>"]
+license = "Apache-2.0"
+keywords = [
+    "can-bus",
+    "embedded-hal-driver",
+    "no_std",
+    "async",
+]
+categories = ["embedded", "hardware-support", "no-std"]
+documentation = "https://docs.rs/mcp25625"
+description = "Platform agnostic, async, no_std Rust driver for the Microchip MCP25625 CAN 2.0B controller with integrated transceiver."
+
+include = [
+    "/**/*.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+]
+
+[features]
+default = ["defmt"]
+## Enables `defmt::Format` derives on public types.
+defmt = ["dep:defmt", "heapless/defmt"]
+## Actually emits log messages via `defmt`'s `trace!`/`debug!`/`info!`/`warn!`/
+## `error!` macros; implies `defmt`. Without this (but with plain `defmt`),
+## logging calls compile out to no-ops rather than being emitted.
+defmt-messages = ["defmt"]
+## Exposes raw single-frame transmit/receive on `Mcp25625` and `Mcp25625Handle`.
+## Off by default: real communication should go through the higher-level P2P
+## (plus BusArbiter) or ISO-TP channels built on top, which give you addressing,
+## fragmentation, and (for P2P) hardware filtering for free. Enable this only
+## for low-level bring-up/debugging or a custom protocol of your own.
+raw-can = []
+
+[package.metadata.docs.rs]
+# Build with every feature on so `raw-can`'s items show up at all; the
+# `#[doc(cfg(...))]` annotations (gated on the `docsrs` cfg docs.rs's nightly
+# rustdoc sets, see `src/lib.rs`) still mark which feature each one actually
+# needs, regardless of this all-features build.
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(docsrs)"] }
+
+[dependencies]
+bitfield-struct = { workspace = true }
+defmt = { workspace = true, optional = true }
+embassy-sync = { workspace = true }
+embassy-futures = "0.1"
+embedded-hal = { workspace = true }
+embedded-hal-async = { workspace = true }
+heapless = { version = "0.9", default-features = false }
+
+# Used only by `examples/`, to run this `no_std` driver's async protocols on
+# a std host against a mock SPI/GPIO "chip" and a virtual CAN bus, without
+# real hardware. Never pulled in for `no_std` firmware builds of this crate.
+[dev-dependencies]
+embassy-executor = { version = "0.10", features = ["platform-std", "executor-thread"] }
+embassy-time = { version = "0.5", features = ["std"] }

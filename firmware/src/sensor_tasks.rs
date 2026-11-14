@@ -1,7 +1,8 @@
+#![allow(unused)]
 #[cfg(feature = "sensor-humi")]
 use bme680_rs::{ohm, percent};
-use defmt::*;
 
+use defmt::{debug, error, trace};
 use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
 use embassy_executor::Spawner;
 use embassy_rp::{
@@ -11,7 +12,7 @@ use embassy_rp::{
 };
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_task_watchdog::embassy_rp::TaskWatchdog;
-use embassy_time::{Duration, Instant};
+use embassy_time::{Delay, Duration, Instant};
 use kiwi_measurements::{CommonMeasurement, SingleMeasurement};
 
 #[cfg(feature = "sensor-baro")]
@@ -26,6 +27,7 @@ use uom::si::{
     thermodynamic_temperature::degree_celsius,
 };
 
+use crate::localstor::MMC_READY;
 use crate::{
     MeasurementSender,
     resources::{I2cDev, IrqHandlers},
@@ -36,7 +38,8 @@ type SharedI2cBus = I2cDevice<'static, NoopRawMutex, I2c<'static, I2C0, I2cAsync
 pub fn spawn_sensor_task(
     spawner: &Spawner,
     dev: I2cDev,
-    channel: MeasurementSender,
+    wifi_channel: MeasurementSender,
+    mmc_channel: MeasurementSender,
     reftime: Instant,
     watchdog: TaskWatchdog,
 ) {
@@ -57,7 +60,14 @@ pub fn spawn_sensor_task(
         static MMCIRQ: StaticCell<Input<'static>> = StaticCell::new();
         let mmc_i2c = I2cDevice::new(i2c_bus);
         let mmcirq = MMCIRQ.init(Input::new(dev.mmcirq, embassy_rp::gpio::Pull::None));
-        unwrap!(spawner.spawn(magnetometer_task(watchdog, mmc_i2c, mmcirq, channel, reftime)));
+        spawner.spawn(defmt::unwrap!(magnetometer_task(
+            watchdog,
+            mmc_i2c,
+            mmcirq,
+            wifi_channel,
+            mmc_channel,
+            reftime
+        )));
     }
 
     #[cfg(feature = "sensor-imu")]
@@ -65,21 +75,80 @@ pub fn spawn_sensor_task(
         static IMUIRQ: StaticCell<Input<'static>> = StaticCell::new();
         let imu_i2c = I2cDevice::new(i2c_bus);
         let imuirq = IMUIRQ.init(Input::new(dev.imuirq, embassy_rp::gpio::Pull::None));
-        unwrap!(spawner.spawn(imu_task(watchdog, imu_i2c, imuirq, channel, reftime)));
+        spawner.spawn(defmt::unwrap!(imu_task(
+            watchdog,
+            imu_i2c,
+            imuirq,
+            wifi_channel,
+            mmc_channel,
+            reftime
+        )));
     }
 
-    #[cfg(feature = "sensor-baro")]
+    #[cfg(any(feature = "sensor-baro", feature = "sensor-old-baro"))]
     {
         static BAROIRQ: StaticCell<Input<'static>> = StaticCell::new();
         let baro_i2c = I2cDevice::new(i2c_bus);
         let baroirq = BAROIRQ.init(Input::new(dev.baroirq, embassy_rp::gpio::Pull::None));
-        unwrap!(spawner.spawn(baro_task(watchdog, baro_i2c, baroirq, channel, reftime)));
+        #[cfg(all(feature = "sensor-baro", not(feature = "sensor-old-baro")))]
+        {
+            spawner.spawn(defmt::unwrap!(baro_task(
+                watchdog,
+                baro_i2c,
+                baroirq,
+                wifi_channel,
+                mmc_channel,
+                reftime
+            )));
+        }
+        // `sensor-old-baro` overrides `sensor-baro` (e.g. `sensors-all` on an
+        // older Kiwi that has the old barometer)
+        #[cfg(feature = "sensor-old-baro")]
+        {
+            spawner.spawn(defmt::unwrap!(old_baro_task(
+                watchdog,
+                baro_i2c,
+                baroirq,
+                wifi_channel,
+                mmc_channel,
+                reftime
+            )));
+        }
     }
 
     #[cfg(feature = "sensor-humi")]
     {
         let humi_i2c = I2cDevice::new(i2c_bus);
-        unwrap!(spawner.spawn(humi_gas_task(watchdog, humi_i2c, channel, reftime)));
+        spawner.spawn(defmt::unwrap!(humi_gas_task(
+            watchdog,
+            humi_i2c,
+            wifi_channel,
+            mmc_channel,
+            reftime
+        )));
+    }
+
+    #[cfg(feature = "sensor-light")]
+    {
+        use core::str::FromStr as _;
+        let light_i2c_0 = I2cDevice::new(i2c_bus);
+        spawner.spawn(defmt::unwrap!(light_task(
+            watchdog,
+            light_i2c_0,
+            (0x44, heapless::String::<8>::from_str("TOP").unwrap()),
+            wifi_channel,
+            mmc_channel,
+            reftime
+        )));
+        let light_i2c_1 = I2cDevice::new(i2c_bus);
+        spawner.spawn(defmt::unwrap!(light_task(
+            watchdog,
+            light_i2c_1,
+            (0x45, heapless::String::<8>::from_str("BOT").unwrap()),
+            wifi_channel,
+            mmc_channel,
+            reftime
+        )));
     }
 }
 
@@ -93,14 +162,15 @@ pub async fn magnetometer_task(
     watchdog: TaskWatchdog,
     i2c: SharedI2cBus,
     irq: &'static mut Input<'static>,
-    sender: MeasurementSender,
+    wifi: MeasurementSender,
+    mmc: MeasurementSender,
     tref: Instant,
 ) {
     use mmc5983ma::{
         ContinuousMeasurementFreq, DEFAULT_I2C_ADDRESS, Mmc5983Async, Mmc5983ConfigBuilder,
     };
     debug!("Initializing MMC5983MA...");
-    let mut mmc = Mmc5983Async::<_, _, NoopRawMutex>::new_with_i2c(
+    let mut mmc_sensor = Mmc5983Async::<_, _, NoopRawMutex>::new_with_i2c(
         i2c,
         DEFAULT_I2C_ADDRESS,
         Mmc5983ConfigBuilder::default()
@@ -109,22 +179,22 @@ pub async fn magnetometer_task(
             .build(),
         embassy_time::Delay,
     );
-    if let Err(e) = mmc.init().await {
+    if let Err(e) = mmc_sensor.init().await {
         error!("Failed to initialize MMC5983MA: {:?}", e);
         return;
     }
     debug!("MMC5983MA initialized");
-    if let Err(e) = mmc.remove_offset().await {
+    if let Err(e) = mmc_sensor.remove_offset().await {
         error!("Failed to remove MMC5983MA offset: {:?}", e);
         return;
     }
     debug!("MMC5983MA offset removed");
-    let temp = mmc.temperature().await.unwrap();
+    let temp = mmc_sensor.temperature().await.unwrap();
     debug!(
         "Temperature: {}°C",
         ThermodynamicTemperature::from(temp).get::<degree_celsius>()
     );
-    let mag = mmc
+    let mag = mmc_sensor
         .measure()
         .await
         .map_err(|e| error!("Failed to take initial measurement: {:?}", e))
@@ -132,14 +202,14 @@ pub async fn magnetometer_task(
     debug!("Magnetometer reading: {}", mag);
     // Take a measurement to ensure the sensor is working
     debug!("MMC5983MA magnetometer starting continuous acquisition");
-    if let Err(e) = mmc
-        .start(|mmc| async {
+    if let Err(e) = mmc_sensor
+        .start(|mag| async {
             let mut count = 0;
             loop {
                 watchdog.feed().await;
                 irq.wait_for_any_edge().await;
                 let now = Instant::now();
-                let mes = mmc.measure().await?;
+                let mes = mag.measure().await?;
                 let x = mes.x.get::<gauss>() * 1e3;
                 let y = mes.y.get::<gauss>() * 1e3;
                 let z = mes.z.get::<gauss>() * 1e3;
@@ -148,14 +218,17 @@ pub async fn magnetometer_task(
                     debug!("Magnetometer reading: {}", mes);
                 }
                 {
-                    if !sender.is_full() {
-                        let measurement = CommonMeasurement::Mag(x, y, z);
-                        sender
-                            .send(SingleMeasurement {
-                                measurement,
-                                timestamp: now.duration_since(tref).as_micros(),
-                            })
-                            .await;
+                    use crate::localstor::MMC_READY;
+
+                    let measurement = SingleMeasurement {
+                        measurement: CommonMeasurement::Mag(x, y, z),
+                        timestamp: now.duration_since(tref).as_micros(),
+                    };
+                    if !wifi.is_full() {
+                        wifi.send(measurement.clone()).await;
+                    }
+                    if MMC_READY.load(core::sync::atomic::Ordering::Relaxed) && !mmc.is_full() {
+                        mmc.send(measurement).await;
                     }
                 }
             }
@@ -172,7 +245,8 @@ pub async fn imu_task(
     watchdog: TaskWatchdog,
     i2c: SharedI2cBus,
     irq: &'static mut Input<'static>,
-    sender: MeasurementSender,
+    wifi: MeasurementSender,
+    mmc: MeasurementSender,
     tref: Instant,
 ) {
     use bmi323_rs::{Bmi323Async, Bmi323Config, GyroRange};
@@ -184,32 +258,58 @@ pub async fn imu_task(
             .with_gyro_mode(bmi323_rs::GyroMode::HighPerformance)
             .with_gyro_range(GyroRange::Auto)
             .with_accel_odr(
-                if cfg!(feature = "imu-accel-odr-1600hz")     { bmi323_rs::OutputDataRate::Hz1600 }
-                else if cfg!(feature = "imu-accel-odr-800hz") { bmi323_rs::OutputDataRate::Hz800 }
-                else if cfg!(feature = "imu-accel-odr-400hz") { bmi323_rs::OutputDataRate::Hz400 }
-                else if cfg!(feature = "imu-accel-odr-200hz") { bmi323_rs::OutputDataRate::Hz200 }
-                else if cfg!(feature = "imu-accel-odr-100hz") { bmi323_rs::OutputDataRate::Hz100 }
-                else if cfg!(feature = "imu-accel-odr-25hz")  { bmi323_rs::OutputDataRate::Hz25 }
-                else if cfg!(feature = "imu-accel-odr-12hz5") { bmi323_rs::OutputDataRate::Hz12_5 }
-                else if cfg!(feature = "imu-accel-odr-6hz25") { bmi323_rs::OutputDataRate::Hz6_25 }
-                else if cfg!(feature = "imu-accel-odr-3hz125") { bmi323_rs::OutputDataRate::Hz3_125 }
-                else if cfg!(feature = "imu-accel-odr-1hz56") { bmi323_rs::OutputDataRate::Hz1_5625 }
-                else if cfg!(feature = "imu-accel-odr-0hz78") { bmi323_rs::OutputDataRate::Hz0_78125 }
-                else { bmi323_rs::OutputDataRate::Hz50 } // default: imu-accel-odr-50hz
+                if cfg!(feature = "imu-accel-odr-1600hz") {
+                    bmi323_rs::OutputDataRate::Hz1600
+                } else if cfg!(feature = "imu-accel-odr-800hz") {
+                    bmi323_rs::OutputDataRate::Hz800
+                } else if cfg!(feature = "imu-accel-odr-400hz") {
+                    bmi323_rs::OutputDataRate::Hz400
+                } else if cfg!(feature = "imu-accel-odr-200hz") {
+                    bmi323_rs::OutputDataRate::Hz200
+                } else if cfg!(feature = "imu-accel-odr-100hz") {
+                    bmi323_rs::OutputDataRate::Hz100
+                } else if cfg!(feature = "imu-accel-odr-25hz") {
+                    bmi323_rs::OutputDataRate::Hz25
+                } else if cfg!(feature = "imu-accel-odr-12hz5") {
+                    bmi323_rs::OutputDataRate::Hz12_5
+                } else if cfg!(feature = "imu-accel-odr-6hz25") {
+                    bmi323_rs::OutputDataRate::Hz6_25
+                } else if cfg!(feature = "imu-accel-odr-3hz125") {
+                    bmi323_rs::OutputDataRate::Hz3_125
+                } else if cfg!(feature = "imu-accel-odr-1hz56") {
+                    bmi323_rs::OutputDataRate::Hz1_5625
+                } else if cfg!(feature = "imu-accel-odr-0hz78") {
+                    bmi323_rs::OutputDataRate::Hz0_78125
+                } else {
+                    bmi323_rs::OutputDataRate::Hz50
+                }, // default: imu-accel-odr-50hz
             )
             .with_gyro_odr(
-                if cfg!(feature = "imu-gyro-odr-1600hz")     { bmi323_rs::OutputDataRate::Hz1600 }
-                else if cfg!(feature = "imu-gyro-odr-800hz") { bmi323_rs::OutputDataRate::Hz800 }
-                else if cfg!(feature = "imu-gyro-odr-400hz") { bmi323_rs::OutputDataRate::Hz400 }
-                else if cfg!(feature = "imu-gyro-odr-200hz") { bmi323_rs::OutputDataRate::Hz200 }
-                else if cfg!(feature = "imu-gyro-odr-100hz") { bmi323_rs::OutputDataRate::Hz100 }
-                else if cfg!(feature = "imu-gyro-odr-25hz")  { bmi323_rs::OutputDataRate::Hz25 }
-                else if cfg!(feature = "imu-gyro-odr-12hz5") { bmi323_rs::OutputDataRate::Hz12_5 }
-                else if cfg!(feature = "imu-gyro-odr-6hz25") { bmi323_rs::OutputDataRate::Hz6_25 }
-                else if cfg!(feature = "imu-gyro-odr-3hz125") { bmi323_rs::OutputDataRate::Hz3_125 }
-                else if cfg!(feature = "imu-gyro-odr-1hz56") { bmi323_rs::OutputDataRate::Hz1_5625 }
-                else if cfg!(feature = "imu-gyro-odr-0hz78") { bmi323_rs::OutputDataRate::Hz0_78125 }
-                else { bmi323_rs::OutputDataRate::Hz50 } // default: imu-gyro-odr-50hz
+                if cfg!(feature = "imu-gyro-odr-1600hz") {
+                    bmi323_rs::OutputDataRate::Hz1600
+                } else if cfg!(feature = "imu-gyro-odr-800hz") {
+                    bmi323_rs::OutputDataRate::Hz800
+                } else if cfg!(feature = "imu-gyro-odr-400hz") {
+                    bmi323_rs::OutputDataRate::Hz400
+                } else if cfg!(feature = "imu-gyro-odr-200hz") {
+                    bmi323_rs::OutputDataRate::Hz200
+                } else if cfg!(feature = "imu-gyro-odr-100hz") {
+                    bmi323_rs::OutputDataRate::Hz100
+                } else if cfg!(feature = "imu-gyro-odr-25hz") {
+                    bmi323_rs::OutputDataRate::Hz25
+                } else if cfg!(feature = "imu-gyro-odr-12hz5") {
+                    bmi323_rs::OutputDataRate::Hz12_5
+                } else if cfg!(feature = "imu-gyro-odr-6hz25") {
+                    bmi323_rs::OutputDataRate::Hz6_25
+                } else if cfg!(feature = "imu-gyro-odr-3hz125") {
+                    bmi323_rs::OutputDataRate::Hz3_125
+                } else if cfg!(feature = "imu-gyro-odr-1hz56") {
+                    bmi323_rs::OutputDataRate::Hz1_5625
+                } else if cfg!(feature = "imu-gyro-odr-0hz78") {
+                    bmi323_rs::OutputDataRate::Hz0_78125
+                } else {
+                    bmi323_rs::OutputDataRate::Hz50
+                }, // default: imu-gyro-odr-50hz
             )
             .with_acc_irq(bmi323_rs::IrqMap::Int2)
             .with_gyro_irq(bmi323_rs::IrqMap::Int2)
@@ -272,24 +372,26 @@ pub async fn imu_task(
                     }
                 }
                 {
-                    if !sender.is_full() {
-                        if let Some((ax, ay, az)) = accel {
-                            let measurement = CommonMeasurement::Accel(ax, ay, az);
-                            sender
-                                .send(SingleMeasurement {
-                                    measurement,
-                                    timestamp: now.duration_since(tref).as_micros(),
-                                })
-                                .await;
+                    if let Some((ax, ay, az)) = accel {
+                        let measurement = SingleMeasurement { measurement: CommonMeasurement::Accel(ax, ay, az) , timestamp: now.duration_since(tref).as_micros() };
+                        if MMC_READY.load(core::sync::atomic::Ordering::Relaxed) && !mmc.is_full() {
+                            mmc.send(measurement.clone())
+                            .await;
                         }
-                        if let Some((gx, gy, gz)) = gyr {
-                            let measurement = CommonMeasurement::Gyro(gx, gy, gz);
-                            sender
-                                .send(SingleMeasurement {
-                                    measurement,
-                                    timestamp: now.duration_since(tref).as_micros(),
-                                })
-                                .await;
+                        if !wifi.is_full() {
+                            wifi.send(measurement)
+                            .await;
+                        }
+                    }
+                    if let Some((gx, gy, gz)) = gyr {
+                        let measurement = SingleMeasurement { measurement: CommonMeasurement::Gyro(gx, gy, gz) , timestamp: now.duration_since(tref).as_micros() };
+                        if MMC_READY.load(core::sync::atomic::Ordering::Relaxed) && !mmc.is_full() {
+                            mmc.send(measurement.clone())
+                            .await;
+                        }
+                        if !wifi.is_full() {
+                            wifi.send(measurement)
+                            .await;
                         }
                     }
                 }
@@ -301,13 +403,14 @@ pub async fn imu_task(
     }
 }
 
-#[cfg(feature = "sensor-baro")]
+#[cfg(all(feature = "sensor-baro", not(feature = "sensor-old-baro")))]
 #[embassy_task_watchdog::task(timeout = Duration::from_secs(1), fallible = true)]
 pub async fn baro_task(
     watchdog: TaskWatchdog,
     i2c: SharedI2cBus,
     #[allow(unused_variables)] irq: &'static mut Input<'static>,
-    sender: MeasurementSender,
+    wifi: MeasurementSender,
+    mmc: MeasurementSender,
     tref: Instant,
 ) {
     {
@@ -315,18 +418,18 @@ pub async fn baro_task(
         use ms5607_rs::AsyncInterface as _;
         let mut ticker = embassy_time::Ticker::every(Duration::from_millis(100));
         const I2C_ADDR: u8 = 0x77; // 0x76;
-        let mut ms5607 = ms5607_rs::Ms5607::new_i2c(
+        let mut dev = ms5607_rs::Ms5607::new_i2c(
             i2c,
             I2C_ADDR.try_into().unwrap(),
             Delay,
             ms5607_rs::Oversampling::Osr4096,
         );
         debug!("Initializing MS5607...");
-        ms5607.init().await.expect("Failed to initialize MS5607");
+        dev.init().await.expect("Failed to initialize MS5607");
         debug!("MS5607 initialized successfully!");
         loop {
             watchdog.feed().await;
-            let measurement = ms5607.read().await.expect("Failed to read from MS5607");
+            let measurement = dev.read().await.expect("Failed to read from MS5607");
             let now = Instant::now();
             let altitude = calculate_altitude(measurement.pressure, Length::new::<foot>(0.0));
             trace!(
@@ -335,21 +438,87 @@ pub async fn baro_task(
                 measurement.pressure.get::<hectopascal>(),
                 altitude.get::<foot>(),
             );
-            if !sender.is_full() {
-                let measurement = CommonMeasurement::Baro(
+            let measurement = SingleMeasurement {
+                measurement: CommonMeasurement::Baro(
                     measurement.temperature.get::<degree_celsius>(),
                     measurement.pressure.get::<hectopascal>(),
                     altitude.get::<foot>(),
-                );
-                sender
-                    .send(SingleMeasurement {
-                        measurement,
-                        timestamp: now.duration_since(tref).as_micros(),
-                    })
-                    .await;
+                ),
+                timestamp: now.duration_since(tref).as_micros(),
+            };
+            if !wifi.is_full() {
+                wifi.send(measurement.clone()).await;
+            }
+            if MMC_READY.load(core::sync::atomic::Ordering::Relaxed) && !mmc.is_full() {
+                mmc.send(measurement).await;
             }
             ticker.next().await;
         }
+    }
+}
+
+#[cfg(feature = "sensor-old-baro")]
+#[embassy_task_watchdog::task(timeout = Duration::from_secs(1), fallible = true)]
+pub async fn old_baro_task(
+    watchdog: TaskWatchdog,
+    i2c: SharedI2cBus,
+    irq: &'static mut Input<'static>,
+    wifi: MeasurementSender,
+    mmc: MeasurementSender,
+    tref: Instant,
+) {
+    {
+        use bmp390_rs::AsyncInterface as _;
+        use embassy_time::Delay;
+        let mut ticker = embassy_time::Ticker::every(Duration::from_millis(100));
+        const I2C_ADDR: u8 = 0x77; // 0x76;
+        let mut dev: bmp390_rs::Bmp390Async<_, _, NoopRawMutex> =
+            bmp390_rs::Bmp390Async::new_with_i2c(
+                i2c,
+                I2C_ADDR,
+                bmp390_rs::Bmp390Config::default()
+                    .enable_irq(true)
+                    .with_output_data_rate(bmp390_rs::OutputDataRate::Hz25_16),
+                embassy_time::Delay,
+            );
+        debug!("Initializing BMP390...");
+        let coeff = dev.init().await.expect("Failed to initialize BMP390");
+        debug!("BMP390 initialized successfully!");
+        dev.start(async |dev| {
+            loop {
+                watchdog.feed().await;
+                irq.wait_for_falling_edge().await;
+                if let Some((temp, pres, alt)) = coeff.convert(
+                    dev.measure().await.expect("Failed to read from BMP390"),
+                    Length::new::<foot>(0.0),
+                ) {
+                    let now = Instant::now();
+                    trace!(
+                        "Temperature: {} °C, Pressure: {} hPa, Altitude: {} ft",
+                        temp.get::<degree_celsius>(),
+                        pres.get::<hectopascal>(),
+                        alt.get::<foot>(),
+                    );
+                    let measurement = SingleMeasurement {
+                        measurement: CommonMeasurement::Baro(
+                            temp.get::<degree_celsius>(),
+                            pres.get::<hectopascal>(),
+                            alt.get::<foot>(),
+                        ),
+                        timestamp: now.duration_since(tref).as_micros(),
+                    };
+                    if !wifi.is_full() {
+                        wifi.send(measurement.clone()).await;
+                    }
+                    if MMC_READY.load(core::sync::atomic::Ordering::Relaxed) && !mmc.is_full() {
+                        mmc.send(measurement).await;
+                    }
+                    ticker.next().await;
+                }
+            }
+        })
+        .await
+        .expect("Failed to start BMP390 barometer");
     }
 }
 
@@ -361,7 +530,8 @@ use bme680_rs::{Bme680, Bme680Address, Config as Bme680Config};
 async fn humi_gas_task(
     watchdog: TaskWatchdog,
     i2c: SharedI2cBus,
-    sender: MeasurementSender,
+    wifi: MeasurementSender,
+    mmc: MeasurementSender,
     tref: Instant,
 ) {
     let mut bme =
@@ -380,18 +550,19 @@ async fn humi_gas_task(
                     m.gas_resistance.get::<ohm>(),
                     m.gas_valid,
                 );
-                if !sender.is_full() {
-                    let measurement = CommonMeasurement::Humi(
+                let measurement = SingleMeasurement {
+                    measurement: CommonMeasurement::Humi(
                         m.temperature.get::<degree_celsius>(),
                         m.humidity.get::<percent>(),
                         m.gas_resistance.get::<ohm>(),
-                    );
-                    sender
-                        .send(SingleMeasurement {
-                            measurement,
-                            timestamp: Instant::now().duration_since(tref).as_micros(),
-                        })
-                        .await;
+                    ),
+                    timestamp: Instant::now().duration_since(tref).as_micros(),
+                };
+                if MMC_READY.load(core::sync::atomic::Ordering::Relaxed) && !mmc.is_full() {
+                    mmc.send(measurement.clone()).await;
+                }
+                if !wifi.is_full() {
+                    wifi.send(measurement).await;
                 }
             }
             Err(bme680_rs::Error::MeasurementTimedOut) => {
@@ -405,6 +576,7 @@ async fn humi_gas_task(
 }
 
 #[cfg(feature = "sensor-baro")]
+#[allow(dead_code)]
 /// Calculate the altitude based on the pressure, sea level pressure, and the reference altitude.
 ///
 /// The altitude is calculating following the [NOAA formula](https://www.weather.gov/media/epz/wxcalc/pressureAltitude.pdf).
@@ -414,4 +586,78 @@ fn calculate_altitude(pressure: Pressure, altitude_reference: Length) -> Length 
         Length::new::<foot>(145366.45 * (1.0 - powf((pressure / sea_level).value, 0.190284)));
 
     above_sea_level - altitude_reference
+}
+
+#[cfg(feature = "sensor-light")]
+#[embassy_task_watchdog::task(timeout = Duration::from_secs(2), fallible = true, pool_size = 2)]
+async fn light_task(
+    watchdog: TaskWatchdog,
+    i2c: SharedI2cBus,
+    address: (u8, heapless::String<8>),
+    wifi: MeasurementSender,
+    mmc: MeasurementSender,
+    tref: Instant,
+) {
+    use opt3001_rs::AsyncInterface as _;
+
+    let name = address.1.clone();
+    let address = match opt3001_rs::Address::try_from(address.0) {
+        Ok(addr) => addr,
+        Err(_) => {
+            error!("Invalid OPT3001 address: {}", address.0);
+            return;
+        }
+    };
+
+    debug!(
+        "Creating OPT3001 sensor [{}] at address {:?}",
+        name, address
+    );
+
+    let mut light_sensor =
+        opt3001_rs::Opt3001::new_i2c(i2c, address, Delay, opt3001_rs::Config::default());
+
+    debug!("OPT3001 sensor [{}] created successfully", name);
+
+    if let Err(e) = light_sensor.init().await {
+        error!("Failed to initialize OPT3001 sensor: {:?}", e);
+        return;
+    }
+
+    debug!("OPT3001 sensor [{}] initialized successfully", name);
+
+    let mut ticker = embassy_time::Ticker::every(Duration::from_secs(1));
+    loop {
+        use opt3001_rs::AsyncInterface;
+        watchdog.feed().await;
+        match light_sensor.read().await {
+            Ok(lux) => {
+                use uom::si::illuminance;
+
+                trace!(
+                    "Light [{}]: {} lux",
+                    name,
+                    lux.illuminance.get::<illuminance::lux>()
+                );
+                let measurement = SingleMeasurement {
+                    measurement: CommonMeasurement::Lux(
+                        name.clone(),
+                        lux.illuminance.get::<illuminance::lux>(),
+                    ),
+                    timestamp: Instant::now().duration_since(tref).as_micros(),
+                };
+                if !wifi.is_full() {
+                    wifi.send(measurement.clone()).await;
+                }
+                if MMC_READY.load(core::sync::atomic::Ordering::Relaxed) && !mmc.is_full() {
+                    mmc.send(measurement).await;
+                }
+            }
+            Err(opt3001_rs::Error::Comm(i2c)) => {
+                error!("OPT3001 I2C bus error during measurement: {:?}", i2c)
+            }
+            Err(e) => error!("OPT3001 returned invalid data during measurement: {:?}", e),
+        }
+        ticker.next().await;
+    }
 }

@@ -1,0 +1,32 @@
+[package]
+name = "embassy-cpu-usage"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Per-core and per-task CPU usage measurement for Embassy on RP2040 / RP2350"
+categories = ["embedded", "no-std"]
+keywords = ["embassy", "rp2350", "rp2040", "profiling", "cpu"]
+
+[dependencies]
+# Align these versions with the ones already in your project; Cargo unifies to a
+# single version per crate, so a mismatched major/minor will fail to build.
+embassy-time = "0.5"
+critical-section = "1.2"
+defmt = { version = "1.0", optional = true }
+
+[features]
+default = ["trace-hooks", "defmt"]
+
+# Define the `_embassy_trace_*` hook symbols the executor calls. Requires the
+# `trace` feature on embassy-executor. Disable this if you want to wire the
+# executor's trace callbacks yourself and call `task_begin` / `task_end`.
+trace-hooks = []
+
+# Emit reports via defmt and enable the `log()` convenience function.
+defmt = ["dep:defmt"]
+
+# Track a single core instead of two.
+single-core = []
+
+# Track up to 128 distinct tasks instead of 64.
+large = []

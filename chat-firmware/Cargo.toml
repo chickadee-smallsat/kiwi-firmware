@@ -1,0 +1,41 @@
+[package]
+name = "chat-firmware"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+embassy-executor = { version = "0.10", features = [
+    "platform-cortex-m",
+    "executor-thread",
+    "executor-interrupt",
+    "defmt",
+] }
+embassy-time = { version = "0.5", features = [
+    "defmt",
+    "defmt-timestamp-uptime",
+] }
+embassy-rp = { version = "0.10", features = [
+    "defmt",
+    "unstable-pac",
+    "time-driver",
+    "critical-section-impl",
+    "rp235xb",
+] }
+embassy-usb = { version = "0.6" }
+embassy-futures = { version = "0.1" }
+embassy-sync = { workspace = true, features = ["defmt"] }
+embassy-defmt-usb = { version = "0.0.2", features = ["global-logger"] }
+
+defmt = "1.0"
+cortex-m = { version = "0.7.6", features = ["inline-asm"] }
+cortex-m-rt = "0.7.0"
+critical-section = "1.1"
+panic-probe = { version = "1.0", features = ["print-defmt"] }
+heapless = { version = "0.9", features = ["defmt"] }
+embedded-hal-bus = { version = "0.3", features = ["async", "defmt-03"] }
+static_cell = "2.1.1"
+crc16 = "0.4"
+assign-resources = { git = "https://github.com/adamgreig/assign-resources", rev = "bd22cb7a92031fb16f74a5da42469d466c33383e" }
+
+mcp25625 = { workspace = true, features = ["defmt", "defmt-messages"] }
+rp-usb-reset = { workspace = true }

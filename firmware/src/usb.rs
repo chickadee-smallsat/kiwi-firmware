@@ -1,6 +1,9 @@
-use core::{str::FromStr, sync::atomic::Ordering};
+use core::{
+    str::FromStr,
+    sync::atomic::Ordering::{self},
+};
 
-use defmt::*;
+use defmt::{debug, error, info, trace};
 use embassy_executor::Spawner;
 use embassy_futures::select::{Either, select};
 use embassy_rp::{
@@ -11,7 +14,7 @@ use embassy_rp::{
 use embassy_task_watchdog::embassy_rp::TaskWatchdog;
 use embassy_time::{Duration, Timer};
 use embassy_usb::{
-    Builder, Config, UsbDevice,
+    Config, UsbDevice,
     class::cdc_acm::{CdcAcmClass, State as CdcAcmState},
 };
 use heapless::String;
@@ -22,13 +25,20 @@ use device_blob::{BLOCK_SIZE, DeviceConfig, WifiConf, load_device_config};
 
 use crate::{
     DEFAULT_DEVICE_NAME, DEFAULT_WIFI_HOST_AP, DataRateReplyReceiver, DataRateRequestSender,
+    fw_consts::{FLASH_SIZE, WIFI_CREDS_ADDR, WIFI_CREDS_OFST},
     resources::{ConfigUpdateDev, IrqHandlers, UsbConfDev},
     wifi::WIFI_READY,
-    wifi_fw_consts::{FLASH_SIZE, WIFI_CREDS_ADDR, WIFI_CREDS_OFST},
 };
+
+/// Device interface GUID advertised via the WCID registry property, so
+/// host tooling can enumerate the reset interface with SetupAPI if it
+/// wants to. Must match the `DeviceInterfaceGUIDs` value in
+/// chickadee-probe-reset.inf.
+const RESET_INTERFACE_GUID: &str = "{CDB3B5AD-293B-4663-AA36-1AAE46463776}";
 
 type CdcAcmDevice = CdcAcmClass<'static, UsbDriver<'static, USB>>;
 type UsbDeviceDriver = UsbDevice<'static, UsbDriver<'static, USB>>;
+type DefmtTask = embassy_defmt_usb::UsbDefmtTask<UsbDriver<'static, USB>>;
 
 /// Commands that can be sent over USB serial
 #[derive(Debug, PartialEq, Eq, Parsable)]
@@ -73,9 +83,6 @@ pub fn usb_task(
     static USB_DEVICE: StaticCell<UsbDeviceDriver> = StaticCell::new();
     static CDC_STATE: StaticCell<CdcAcmState> = StaticCell::new();
     static CDC_CLASS: StaticCell<CdcAcmDevice> = StaticCell::new();
-    static CONF_DESC: StaticCell<[u8; 256]> = StaticCell::new();
-    static BOS_DESC: StaticCell<[u8; 256]> = StaticCell::new();
-    static CONTROL_BUF: StaticCell<[u8; 64]> = StaticCell::new();
 
     let driver = UsbDriver::new(usbdev.usb, IrqHandlers);
 
@@ -87,26 +94,19 @@ pub fn usb_task(
     config.max_power = 100;
     config.max_packet_size_0 = 64;
 
-    // Create embassy-usb DeviceBuilder using the driver and config.
-    // It needs some buffers for building the descriptors.
-    let config_descriptor = CONF_DESC.init([0; 256]);
-    let bos_descriptor = BOS_DESC.init([0; 256]);
-    let control_buf = CONTROL_BUF.init([0; 64]);
+    // Build the embassy-usb Builder (descriptor buffers, MS OS 2.0/WCID
+    // descriptor set, and the BOOTSEL reset handler) via `rp_usb_reset`.
+    let mut usb_builder = rp_usb_reset::build_usb_builder!(driver, config, RESET_INTERFACE_GUID);
 
     let reader_state = CDC_STATE.init(CdcAcmState::new());
-
-    let mut usb_builder = Builder::new(
-        driver,
-        config,
-        config_descriptor,
-        bos_descriptor,
-        &mut [], // no msos descriptors
-        control_buf,
-    );
 
     // Create classes on the builder.
     let comm = CDC_CLASS.init(CdcAcmClass::new(&mut usb_builder, reader_state, 64));
     trace!("Created CDC comm class");
+
+    // CDC-ACM #1: defmt log sink — interface and "defmt" string handler
+    // are registered by UsbDefmtLogger::build().
+    let defmt_task = embassy_defmt_usb::UsbDefmtLogger::new().build(&mut usb_builder);
 
     // Build the builder.
     let usb: UsbDevice<'_, UsbDriver<'_, USB>> = usb_builder.build();
@@ -114,13 +114,22 @@ pub fn usb_task(
 
     // Run the USB device.
     let usb_dev = USB_DEVICE.init(usb);
-    spawner.spawn(usb_device_task(usb_dev)).unwrap();
+    spawner.spawn(defmt::unwrap!(usb_device_task(usb_dev)));
+
+    // Run the defmt drain task.
+    spawner.spawn(defmt_drain_task(defmt_task).unwrap());
 
     // Run the CDC comm task.
-    spawner
-        .spawn(usb_comm_task(comm, watchdog, flash, request, reply))
-        .unwrap();
+    spawner.spawn(defmt::unwrap!(usb_comm_task(
+        comm, watchdog, flash, request, reply
+    )));
     trace!("Spawned USB tasks");
+}
+
+/// Embassy task that drains defmt bytes over the CDC-ACM bulk-IN endpoint.
+#[embassy_executor::task]
+async fn defmt_drain_task(task: DefmtTask) {
+    task.run().await;
 }
 
 #[embassy_executor::task]
@@ -327,7 +336,7 @@ fn process_ssid_pw(
         return Err("Error: Password too short (minimum 8 characters)");
     }
     let mut ssid_h = String::<32>::new();
-    trace!("Processing SSID: {}, password: {}", ssid, pw);
+    trace!("Processing SSID: {}, password: {:?}", ssid, pw);
     let _ = ssid_h.push_str(ssid); // Safety: checked length above
     let pw_h = pw.map(|p| {
         let mut s = String::<64>::new();

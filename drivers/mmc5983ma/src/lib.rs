@@ -229,6 +229,7 @@ impl Div<u32> for MagMeasurementRaw {
 }
 
 /// Raw temperature measurement from the sensor
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TempMeasurementRaw(pub u8);
 
 const MAX_LOOPS: usize = 100;
